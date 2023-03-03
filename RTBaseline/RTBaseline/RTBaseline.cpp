@@ -74,7 +74,6 @@ void Lexer::printTokenList() {
 LexerLog Lexer::scan(std::string strIn) {
     LexerLog scanLog;
     for (size_t i = 0; i < strIn.length();i += 0) {
-        qDebug() << i << "\n";
         if (isSpace(strIn[i])) {
             ++i;
         }
@@ -126,6 +125,13 @@ void Lexer::pushParameterToken(std::string s, size_t& index_now, LexerLog& log) 
         token.type = getParameterType(s[index_now]);
         ++index_now;//cross the parameter
     }
+    else if (index_now < s.length() && isNumber(s[index_now])) {
+        while (index_now < s.length() && isNumber(s[index_now])) {
+            token.content += s[index_now];
+            ++index_now;
+        }
+        token.type = TokenType::TOPK;
+    }
     else {
         log.set_illegal_identifier_err(index_now, s);
     }
@@ -164,7 +170,7 @@ bool Lexer::isNumber(char c) {
 
 void Lexer::pushNumberToken(std::string s, size_t& index_now) {
     Token token;
-    while (isNumber(s[index_now])) {
+    while (isNumber(s[index_now]) && index_now < s.length()) {
         token.content += s[index_now];
         ++index_now;
     }
@@ -178,7 +184,7 @@ bool Lexer::isSpace(char c) {
 
 void Lexer::pushKeywordToken(std::string s, size_t& index_now, LexerLog& log) {
     Token token;
-    while (isLetter(s[index_now])) {
+    while (isLetter(s[index_now])&&index_now<s.length()) {
         token.content += s[index_now];
         ++index_now;
     }
@@ -186,7 +192,7 @@ void Lexer::pushKeywordToken(std::string s, size_t& index_now, LexerLog& log) {
         token.type = getKeywordType(token.content);
     }
     else {
-        log.set_illegal_identifier_err(index_now, s);
+        log.set_illegal_identifier_err(index_now-token.content.length(), index_now, s);
         //break;
     }
     tokenList.push_back(token);
@@ -221,7 +227,19 @@ void LexerLog::set_illegal_identifier_err(int errPosition,std::string& errStr) {
         if (j == errPos) log += "^";
         else log += "-";
     }
-    log += "\nLexer Error at Position:" + std::to_string(errPos) + "\n";
+    log += "\nLexer Error: <illegal identifier> at Position:" + std::to_string(errPos) + "\n";
+    qDebug() << QString::fromStdString(log);
+}
+
+void LexerLog::set_illegal_identifier_err(int errPosition_begin, int errPosition_end, std::string& errStr) {
+    errPos = errPosition_begin;
+    isSuccess = false;
+    log += "\n" + errStr + "\n";
+    for (size_t j = 0; j < errStr.length(); ++j) {
+        if (errPosition_begin <= j && j < errPosition_end) log += "^";
+        else log += "-";
+    }
+    log += "\nLexer Error: <illegal identifier> at Position:" + std::to_string(errPos) + "\n";
     qDebug() << QString::fromStdString(log);
 }
 

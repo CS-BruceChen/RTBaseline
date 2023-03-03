@@ -36,6 +36,7 @@ enum TokenType
     QUERY_TRAJ,
     RANGE,
     SIMILARITY,
+    TOPK,
     //float number
     NUMBER,
     //symbol,
@@ -65,6 +66,7 @@ struct LexerLog {
     int errPos;
     LexerLog() :log(""), isSuccess("true"), errPos(0) {};
     void set_illegal_identifier_err(int errPosition, std::string& errStr);
+    void set_illegal_identifier_err(int errPosition_begin, int errPosition_end, std::string& errStr);
 };
 
 
