@@ -65,6 +65,10 @@ void RTBaseline::processInput() {
     startNewLine();
 }
 
+/*
+* Lexer Implementation
+*/
+
 void Lexer::printTokenList() {
     for (size_t i = 0; i < tokenList.size(); i++)    {
         tokenList[i].printToken();
@@ -84,19 +88,76 @@ LexerLog Lexer::scan(std::string strIn) {
         else if (isNumber(strIn[i])) {//
             pushNumberToken(strIn, i);
         }
-        else if (isSymbol(strIn[i])) {//[ ] , . " " ( )
-            pushSymbolToken(strIn, i);
+        else if (isComma(strIn[i])) {//,
+            pushCommaToken(strIn, i);
         }
         else if (isParameter(strIn[i])) {
             pushParameterToken(strIn, i, scanLog);
             if (!scanLog.isSuccess) break;
         }
+        else if (isQuote(strIn[i])) {// "
+            pushPathToken(strIn, i, scanLog);
+            if (!scanLog.isSuccess) break;
+        }
+        else if (isLSB(strIn[i])) {// [
+            pushSequenceToken(strIn, i, scanLog);
+            if (!scanLog.isSuccess) break;
+        }
+
         else {
             scanLog.set_illegal_identifier_err(i, strIn);
             break;
         }
     }
     return scanLog;
+}
+
+bool Lexer::isLSB(char c) {
+    return (c == '[');
+}
+
+bool Lexer::isRSB(char c) {
+    return (c == ']');
+}
+
+void Lexer::pushSequenceToken(std::string s, size_t& index_now, LexerLog& log) {
+    Token token;
+    ++index_now;//cross the LSB
+    while (index_now < s.length() && (!isRSB(s[index_now]))) {
+        token.content += s[index_now];
+        ++index_now;
+    }
+    if (index_now >= s.length()) {//miss the last RSB
+        log.set_matching_symbol_missing_err(index_now - token.content.length() - 1, s);
+    }
+    else {
+        ++index_now;//cross the RSB
+        token.type = TokenType::SEQUENCE;
+        tokenList.push_back(token);
+    }
+}
+
+
+bool Lexer::isQuote(char c) {
+    return (c == '\"');
+}
+
+void Lexer::pushPathToken(std::string s, size_t& index_now, LexerLog& log) {
+    Token token;
+    ++index_now;//cross the first quote
+    while (index_now < s.length() && (!isQuote(s[index_now]))) {
+        token.content += s[index_now];
+        ++index_now;
+    }
+    if (index_now >= s.length()) {//miss the last quote
+        log.set_matching_symbol_missing_err(index_now-token.content.length()-1, s);
+    }
+    else {
+        ++index_now;//cross the last quote
+        token.type = TokenType::PATH;
+        tokenList.push_back(token);
+    }
+    
 }
 
 bool Lexer::isParameter(char c) {
@@ -138,25 +199,14 @@ void Lexer::pushParameterToken(std::string s, size_t& index_now, LexerLog& log) 
     tokenList.push_back(token);
 }
 
-bool Lexer::isSymbol(char c) {
-    return (c =='(' || c == ')' || c == '[' || c == ']' || c == ',' || c == '.' || c == '\"');
+bool Lexer::isComma(char c) {
+    return (c == ',');
 }
 
-TokenType Lexer::getSymbolType(char c) {
-    if (c == '(') return TokenType::LP;
-    else if (c == ')') return TokenType::RP;
-    else if (c == '[') return TokenType::LSB;
-    else if (c == ']') return TokenType::RSB;
-    else if (c == ',') return TokenType::COMMA;
-    else if (c == '.') return TokenType::DOT;
-    else if (c == '\"') return TokenType::QUOTE;
-    else return TokenType::DEFAULT;
-}
-
-void Lexer::pushSymbolToken(std::string s, size_t& index_now) {
+void Lexer::pushCommaToken(std::string s, size_t& index_now) {
     Token token;
     token.content = s[index_now];
-    token.type = getSymbolType(s[index_now]);
+    token.type = TokenType::COMMA;
     tokenList.push_back(token);
     ++index_now;
 }
@@ -243,6 +293,40 @@ void LexerLog::set_illegal_identifier_err(int errPosition_begin, int errPosition
     qDebug() << QString::fromStdString(log);
 }
 
+void LexerLog::set_matching_symbol_missing_err(int errPosition, std::string& errStr) {
+    errPos = errPosition;
+    isSuccess = false;
+    log += "\n" + errStr + "\n";
+    for (size_t j = 0; j < errStr.length(); ++j) {
+        if (j == errPos) log += "^";
+        else log += "-";
+    }
+    log += "\nLexer Error: <matching symbol missing> at Position:" + std::to_string(errPos) + "\n";
+    qDebug() << QString::fromStdString(log);
+}
+/*
+* Parser Implementation
+*/
 
+void Parser::parse(std::vector<Token> tokenList) {
+    if (tokenList.size() <= 0) {
+        return;
+    }
+    else if (tokenList[0].type == TokenType::ADD) {
+        
+    }
+    else if (tokenList[0].type == TokenType::SELECT) {
 
+    }
+    else if (tokenList[0].type == TokenType::DELETE) {
+
+    }
+    else if (tokenList[0].type == TokenType::SHOW) {
+
+    }
+    else {
+
+    }
+    
+}
 
