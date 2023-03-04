@@ -55,13 +55,13 @@ void RTBaseline::processInput() {
     QString strIn = ui.textEdit->toPlainText().sliced(cursorStartPosition);
     Lexer lexer;
     LexerLog lexerlog = lexer.scan(strIn.toStdString());
-    if (!lexerlog.isSuccess) {
-        ui.textEdit->append(QString::fromStdString(lexerlog.log));
+    if (lexerlog.isSuccess) {
+        Parser parser;
+        parser.parse(lexer.getTokenList());
     }
     else {
-        lexer.printTokenList();
+        ui.textEdit->append(QString::fromStdString(lexerlog.log));
     }
-    //qDebug() << strIn << "\n";
     startNewLine();
 }
 
@@ -257,7 +257,7 @@ bool Lexer::isLetter(char c) {
 }
 
 bool Lexer::isKeyword(std::string s) {
-    return (s == "add" || s == "select" || s == "from" || s == "delete" || s == "show");
+    return (s == "add" || s == "select" || s == "from" || s == "delete" || s == "show" || s== "help");
 }
 
 TokenType Lexer::getKeywordType(std::string s) {
@@ -266,6 +266,7 @@ TokenType Lexer::getKeywordType(std::string s) {
     else if (s == "from") return TokenType::FROM;
     else if (s == "delete") return TokenType::DELETE;
     else if (s == "show") return TokenType::SHOW;
+    else if (s == "help") return TokenType::HELP;
     else return TokenType::DEFAULT;
 }
 
@@ -308,24 +309,179 @@ void LexerLog::set_matching_symbol_missing_err(int errPosition, std::string& err
 * Parser Implementation
 */
 
-void Parser::parse(std::vector<Token> tokenList) {
-    if (tokenList.size() <= 0) {
-        return;
+void Parser::parse(TokenList tokenList) {
+    if (tokenList.size() == 0) {
+        qDebug() << "empty command\n";
     }
-    else if (tokenList[0].type == TokenType::ADD) {
-        
+    else if (isAddCommand(tokenList)) {
+        qDebug() << "add command\n";
     }
-    else if (tokenList[0].type == TokenType::SELECT) {
-
+    else if (isSelectCommand(tokenList)) {
+        qDebug() << "select command\n";
     }
-    else if (tokenList[0].type == TokenType::DELETE) {
-
+    else if (isDeleteCommand(tokenList)) {
+        qDebug() << "delete command\n";
     }
-    else if (tokenList[0].type == TokenType::SHOW) {
-
+    else if (isShowCommand(tokenList)) {
+        qDebug() << "show command\n";
+    }
+    else if(isHelpCommand(tokenList)){
+        qDebug() << "help command\n";
     }
     else {
+        qDebug() << "Invalid Command\n";
+    }
+    
+}
 
+bool Parser::isAddCommand(TokenList tokenList) {
+    if (tokenList[0].type == TokenType::ADD
+        && tokenList.size() >= 3
+        && (tokenList[1].type == TokenType::TRAJECTORY || tokenList[1].type == TokenType::POLYGON || tokenList[1].type == TokenType::QUERY_TRAJ)
+        && (tokenList[2].type == TokenType::SEQUENCE || (tokenList[2].type == TokenType::PATH && tokenList.size() == 3))) {
+        //读取seq类型的token，并且是，每遇到一个comma才会向下再读一位。非法的token则报错
+        return true;
+    }
+    else if (tokenList[0].type == TokenType::ADD) {
+        qDebug()
+            << "Wrong Format Error: The format of the add command is as follows:\n"
+            << "\tadd -t [(x0,y0),(x1,y1),...]\n"
+            << "\tadd -t \"your/file/path\"\n"
+            << "\tadd -p [(x0,y0),(x1,y1),...]\n"
+            << "\tadd -p \"your/file/path\"\n"
+            << "\tadd -q [(x0,y0),(x1,y1),...]\n"
+            << "\tadd -q \"your/file/path\"\n"
+            << "\tfor more information, please input help\n";
+        return false;
+    }
+    else return false;
+}
+
+bool Parser::isSelectCommand(TokenList tokenList) {
+    if (tokenList[0].type == TokenType::SELECT && (tokenList.size() == 5 || tokenList.size() == 6 || tokenList.size() == 7)) {
+        if (tokenList[1].type == TokenType::TOPK) {
+            if (tokenList[2].type == TokenType::RANGE
+                && (tokenList[3].type == TokenType::TRAJECTORY || tokenList[3].type == TokenType::POLYGON)
+                && tokenList[4].type == TokenType::SEQUENCE
+                && tokenList[5].type == TokenType::FROM
+                && tokenList[6].type == TokenType::SEQUENCE) {
+                return true;
+            }
+            else if (tokenList[2].type == TokenType::SIMILARITY
+                && tokenList[3].type == TokenType::SEQUENCE
+                && tokenList[4].type == TokenType::FROM
+                && tokenList[5].type == TokenType::SEQUENCE) {
+                return true;
+            }
+        }
+        else if (tokenList[1].type == TokenType::RANGE
+            && (tokenList[2].type == TokenType::TRAJECTORY || tokenList[3].type == TokenType::POLYGON)
+            && tokenList[3].type == TokenType::SEQUENCE
+            && tokenList[4].type == TokenType::FROM
+            && tokenList[5].type == TokenType::SEQUENCE) {
+            return true;
+        }
+        else if (tokenList[1].type == TokenType::SIMILARITY
+            && tokenList[2].type == TokenType::SEQUENCE
+            && tokenList[3].type == TokenType::FROM
+            && tokenList[4].type == TokenType::SEQUENCE) {
+            return true;
+        }
+    }
+    else if (tokenList[0].type == TokenType::SELECT) {
+        qDebug()
+            << "Wrong Format Error: The format of the select command is as follows:\n"
+            << "\tselect -<top k num> -r -t [tid0,tid1,...] from [[pid0,pid1,...]\n"
+            << "\tselect -<top k num> -r -p [pid0,pid1,...] from [tid0,tid1,...]\n"
+            << "\tselect -<top k num> -s [tid0,tid1,...] from [qid0,qid1,...]\n"
+            << "\tselect -r -t [tid0,tid1,...] from [pid0,pid1,...]\n"
+            << "\tselect -r -p [pid0,pid1,...] from [tid0,tid1,...]\n"
+            << "\tselect -s [tid0,tid1,...] from [qid0,qid1,...]\n"
+            << "\tfor more information, please input help\n";
+        return false;
+    }
+    else return false;
+}
+
+bool Parser::isDeleteCommand(TokenList tokenList) {
+    if (tokenList[0].type == TokenType::DELETE
+        && tokenList.size() == 3
+        && (tokenList[1].type == TokenType::TRAJECTORY || tokenList[1].type == TokenType::POLYGON || tokenList[1].type == TokenType::QUERY_TRAJ)
+        && (tokenList[2].type == TokenType::SEQUENCE)) {
+        return true;
+    }
+    else if (tokenList[0].type == TokenType::DELETE) {
+        qDebug()
+            << "Wrong Format Error: The format of the delete command is as follows:\n"
+            << "\tdelete -t [tid0,tid1,...]\n"
+            << "\tdelete -p [pid0,pid1,...]\n"
+            << "\tdelete -q [qid0,qid1,...]\n";
+        return false;
+    }
+    else return false;
+}
+
+bool Parser::isShowCommand(TokenList tokenList) {
+    if (tokenList[0].type == TokenType::SHOW
+        && tokenList.size() == 3
+        && (tokenList[1].type == TokenType::TRAJECTORY || tokenList[1].type == TokenType::POLYGON || tokenList[1].type == TokenType::QUERY_TRAJ)
+        && (tokenList[2].type == TokenType::SEQUENCE)) {
+        return true;
+    }
+    else if (tokenList[0].type == TokenType::SHOW) {
+        qDebug()
+            << "Wrong Format Error: The format of the show command is as follows:\n"
+            << "\tshow -t [tid0,tid1,...]\n"
+            << "\tshow -p [pid0,pid1,...]\n"
+            << "\tshow -q [qid0,qid1,...]\n";
+        return false;
+    }
+    else return false;
+}
+
+bool Parser::isHelpCommand(TokenList tokenList) {
+    if (tokenList[0].type == TokenType::HELP && tokenList.size() == 1) {
+        return true;
+    }
+    else if (tokenList[0].type == TokenType::HELP) {
+        qDebug()
+            << "Wrong Format Error: The format of the help command is as follows:\n"
+            << "\thelp\n";
+        return false;
+    }
+    else return false;
+}
+
+
+//设定：所有的合法性检查都在isxxx函数里面设计好，这里就认为所有的token序列格式都是合法的，不用考虑非法序列错误
+void Parser::processAddCommand(TokenList tokenList) {
+    TokenType addParameter = tokenList[1].type;
+    if (tokenList[2].type == TokenType::PATH) {
+        std::vector<Sequence> seqArray = fetchDataFromFile(tokenList[2].content);
+        switch (addParameter) {
+        case TRAJECTORY: tdb.ADD(seqArray); break;
+        case POLYGON: pdb.ADD(seqArray); break;
+        case QUERY_TRAJ: qdb.ADD(seqArray); break;
+        default: break;
+        }
+        return;
+    }
+    else {
+        size_t i = 2;
+        std::vector<Sequence> seqArray;
+        while (i < tokenList.size()) {
+            if (tokenList[i].type == TokenType::SEQUENCE) {
+                seqArray.push_back(fetchDataFromInput(tokenList[i].content));
+            }
+            ++i;
+        }
+        switch (addParameter) {
+        case TRAJECTORY: tdb.ADD(seqArray); break;
+        case POLYGON: pdb.ADD(seqArray); break;
+        case QUERY_TRAJ: qdb.ADD(seqArray); break;
+        default: break;
+        }
+        return;
     }
     
 }

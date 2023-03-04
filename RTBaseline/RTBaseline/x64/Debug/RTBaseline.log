@@ -3,10 +3,11 @@
   main.cpp
 C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 RTBaseline.cpp)
 C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 main.cpp)
-C:\Qt\6.4.2\msvc2019_64\include\QtGui\qtguiexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 RTBaseline.cpp)
-C:\Qt\6.4.2\msvc2019_64\include\QtWidgets\qtwidgetsexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 RTBaseline.cpp)
 C:\Qt\6.4.2\msvc2019_64\include\QtGui\qtguiexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 main.cpp)
+C:\Qt\6.4.2\msvc2019_64\include\QtGui\qtguiexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 RTBaseline.cpp)
 C:\Qt\6.4.2\msvc2019_64\include\QtWidgets\qtwidgetsexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 main.cpp)
+C:\Qt\6.4.2\msvc2019_64\include\QtWidgets\qtwidgetsexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失 (编译源文件 RTBaseline.cpp)
+D:\postgraduate\2023\02212006\RTBaseline\RTBaseline\RTBaseline\RTBaseline.cpp(404): warning C4715: “Parser::isSelectCommand”: 不是所有的控件路径都返回值
   moc_RTBaseline.cpp
 C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 C:\Qt\6.4.2\msvc2019_64\include\QtGui\qtguiexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
