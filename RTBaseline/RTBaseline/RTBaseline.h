@@ -4,6 +4,7 @@
 #include "ui_RTBaseline.h"
 #include <QEvent>
 #include <QKeyEvent>
+#include <fstream>
 class RTBaseline : public QMainWindow
 {
     Q_OBJECT
@@ -12,10 +13,14 @@ public:
     RTBaseline(QWidget *parent = Q_NULLPTR);
 private:
     Ui::RTBaselineClass ui;
-    int max_line;
     int cursorStartPosition;
+    std::vector<QString> historyStr;
+    size_t hisIndex;
+    bool isNeverHitUp;
     void processInput();
     void startNewLine();
+    void processUp();
+    void processDown();
 private slots:
     void on_textEdit_cursorPositionChanged();
 protected:
@@ -47,7 +52,7 @@ enum TokenType
     RP,
     //filepath
     PATH,
-    //traj or polygon sequence
+    //traj or polygon or id sequence
     SEQUENCE,
     //default
     DEFAULT,
@@ -56,38 +61,46 @@ enum TokenType
 struct Token {
     std::string content;
     TokenType type;
-    Token():content(""),type(TokenType::DEFAULT) {};
+    Token():content(""),type(DEFAULT) {};
     void printToken() {
         qDebug() << "Token:( " << QString::fromStdString(content) << ", " << type << " )\n";
     }
 };
 
-struct LexerLog {
+struct Log {
     std::string log;
     bool isSuccess;
     int errPos;
-    LexerLog() :log(""), isSuccess("true"), errPos(0) {};
+    Log() :log(""), isSuccess(true), errPos(0) {};
     void set_illegal_identifier_err(int errPosition, std::string& errStr);
     void set_illegal_identifier_err(int errPosition_begin, int errPosition_end, std::string& errStr);
     void set_matching_symbol_missing_err(int errPosition, std::string& errStr);
+    void set_wrong_add_command_format_err();
+    void set_wrong_select_command_format_err();
+    void set_wrong_delete_command_format_err();
+    void set_wrong_show_command_format_err();
+    void set_wrong_help_command_format_err();
+    void set_wrong_data_format_err(int errPosition, std::string& errStr);
+    void set_wrong_command_err();
 };
 
 typedef std::vector<Token> TokenList;
 
 struct Lexer {//Lexical analyzer词法分析器
-public:
+public://其实应该把LexerLog作为一个数据对象的
     void printTokenList();
-    TokenList getTokenList() const { return tokenList; };
-    LexerLog scan(std::string s);
-
+    TokenList getTokenList() const { return tokenList; }
+    void scan(std::string s);
+    Log getLexerLog() const { return LexerLog; }
 private:
     TokenList tokenList;
+    Log LexerLog;
     
 private:
-    void pushKeywordToken(std::string s,size_t& index_now, LexerLog& log);
-    void pushParameterToken(std::string s, size_t& index_now, LexerLog& log);
-    void pushPathToken(std::string s, size_t& index_now, LexerLog& log);
-    void pushSequenceToken(std::string s, size_t& index_now, LexerLog& log);
+    void pushKeywordToken(std::string s,size_t& index_now);
+    void pushParameterToken(std::string s, size_t& index_now);
+    void pushPathToken(std::string s, size_t& index_now);
+    void pushSequenceToken(std::string s, size_t& index_now);
     void pushNumberToken(std::string s, size_t& index_now);
     void pushCommaToken(std::string s, size_t& index_now);
     bool isLetter(char c);
@@ -113,48 +126,84 @@ struct Point {
 };
 
 typedef std::vector<Point> Sequence;
+typedef std::vector<size_t> IDArray;
 
 class PrimitiveDB {
     //default constructor
 private:
-    std::vector<Sequence> DBArray;
+    static std::vector<Sequence> TDBArray;
+    static std::vector<Sequence> PDBArray;
+    static std::vector<Sequence> QDBArray;
 public:
-    void ADD(std::vector<Sequence> PrimitiveData);
-    void DELETE();
-public:
-    virtual void SELECT();
-    virtual void SHOW();
+    virtual void ADD(std::vector<Sequence> seqArray) = 0;
+    virtual void DELETE(IDArray ids) = 0;
+    virtual IDArray SELECT(IDArray ids1,IDArray ids2,int topk) = 0;
+    virtual void SHOW(IDArray ids) = 0;
+    virtual void PRINT(IDArray result_ids) = 0;
 };
 
-class TrajectoryDB :public PrimitiveDB {};
-class QueryTrajDB : public PrimitiveDB {};
+class TrajectoryDB :public PrimitiveDB {
+public:
+    void ADD(std::vector<Sequence> seqArray);
+    void DELETE(IDArray ids);
+    IDArray SELECT(IDArray tids,IDArray pids,int topk);
+    void SHOW(IDArray ids);
+    void PRINT(IDArray result_ids);
+};
+
+class QueryTrajDB : public PrimitiveDB {
+public:
+    void ADD(std::vector<Sequence> seqArray);
+    void DELETE(IDArray ids);
+    IDArray SELECT(IDArray tids,IDArray qids,int topk);
+    void SHOW(IDArray ids);
+    void PRINT(IDArray result_ids);
+};
+
 class PolygonDB : public PrimitiveDB {
 public:
-    void SELECT();
-    void SHOW();
+    void ADD(std::vector<Sequence> seqArray);
+    void DELETE(IDArray ids);
+    IDArray SELECT(IDArray pids,IDArray tids,int topk);
+    void SHOW(IDArray ids);
+    void PRINT(IDArray result_ids);
 };
 
 
 struct Parser {//Syntax parser语法解析器
+public:
     void parse(TokenList tokenList);
-private:
-    bool isAddCommand(TokenList tokenList);
-    bool isSelectCommand(TokenList tokenList);
-    bool isDeleteCommand(TokenList tokenList);
-    bool isShowCommand(TokenList tokenList);
-    bool isHelpCommand(TokenList tokenList);
-    void parseSequence(TokenList tokenList);
-    Sequence fetchDataFromInput(std::string inputSequence);//
-    std::vector<Sequence> fetchDataFromFile(std::string filepath);
-    void processAddCommand(TokenList tokenList);
-    void processSelectCommand(TokenList tokenList);
-    void processDeleteCommand(TokenList tokenList);
-    void processShowCommand(TokenList tokenList);
-    void processHelpCommand(TokenList tokenList);
+    Log getParserLog() const { return parserLog; }
 private:
     TrajectoryDB tdb;
     PolygonDB pdb;
     QueryTrajDB qdb;
+    Log parserLog;
+    enum Command {
+        CADDS,//add from sequence
+        CADDP,//add from filePath
+        CSLT,//select
+        CDEL,//delete
+        CSHOW,//show
+        CHELP,//help
+        CERR//erro
+    };
+private:
+    //void parseSequence(TokenList tokenList);
+    Command fetchCommand(TokenList tokenList);
+    Sequence fetchDataFromInput(std::string inputSequence);
+    std::vector<Sequence> fetchDataFromFile(std::string filepath);
+    IDArray fectchIDFromInput(std::string inputIDArray);
+    void doSelectInDB(PrimitiveDB* db, std::string str1, std::string str2);
+    void doSelectInDB(PrimitiveDB* db, std::string str1, std::string str2, int topk);
+    void processAddFromFileCommand(TokenList tokenList);
+    void processAddFromSequenceCommand(TokenList tokenList);
+    void processSelectCommand(TokenList tokenList);
+    void processDeleteCommand(TokenList tokenList);
+    void processShowCommand(TokenList tokenList);
+    void processHelpCommand(TokenList tokenList);
+    
+
 };
 
 
