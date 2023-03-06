@@ -25,7 +25,7 @@
       </property>
       <property name="styleSheet">
        <string notr="true">color: rgb(204, 204, 204);
-font: 700 14pt &quot;Consolas&quot;;
+font: 14pt &quot;Consolas&quot;;
 border:0px;
 </string>
       </property>

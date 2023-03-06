@@ -1,4 +1,6 @@
-﻿  RTBaseline.cpp
+﻿  Lexer_Parser.cpp
+C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  moc_RTBaseline.cpp
 C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 C:\Qt\6.4.2\msvc2019_64\include\QtGui\qtguiexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
 C:\Qt\6.4.2\msvc2019_64\include\QtWidgets\qtwidgetsexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失

@@ -62,7 +62,12 @@
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/permissive- /Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>triangulation;OpenGL4.6;$(Qt_INCLUDEPATH_);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>OpenGL4.6;$(Qt_LIBPATH_);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glfw3.lib;$(Qt_LIBS_);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
@@ -94,8 +99,19 @@
     <QtRcc Include="RTBaseline.qrc" />
     <QtUic Include="RTBaseline.ui" />
     <QtMoc Include="RTBaseline.h" />
+    <ClCompile Include="GLObject.cpp" />
+    <ClCompile Include="Lexer_Parser.cpp" />
+    <ClCompile Include="Log.cpp" />
+    <ClCompile Include="OpenGL4.6\glad.c" />
+    <ClCompile Include="PrimitiveDB.cpp" />
     <ClCompile Include="RTBaseline.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GLObject.h" />
+    <ClInclude Include="Lexer_Parser.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="PrimitiveDB.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
