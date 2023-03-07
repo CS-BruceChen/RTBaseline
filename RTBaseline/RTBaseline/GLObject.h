@@ -131,7 +131,10 @@ struct Point {
     Point() { x = 0; y = 0; }
     Point(float xx, float yy) { x = xx; y = yy; }
     Point(const Point& pt) { x = pt.x; y = pt.y; };
-    template<class T, class U> Point(T in_x, U in_y) { x = static_cast<float>(in_x); y = static_cast<float>(in_y); }
+    template<class T, class U> Point(T in_x, U in_y) {
+        x = static_cast<float>(in_x); 
+        y = static_cast<float>(in_y); 
+    }
 };
 
 typedef std::vector<Point> Sequence;

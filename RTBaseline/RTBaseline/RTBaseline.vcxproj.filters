@@ -24,6 +24,12 @@
     <Filter Include="Source Files\Shader">
       <UniqueIdentifier>{1eb0e028-cb27-4aca-8eba-4462e9184f41}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Triangulation">
+      <UniqueIdentifier>{bf429145-314e-4f4c-806c-80d4a380e6c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Triangulation">
+      <UniqueIdentifier>{043f83b8-58cf-446a-b25b-e8021d066ae6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="RTBaseline.qrc">
@@ -58,26 +64,26 @@
     <ClCompile Include="Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="triangulation\clip2tri\clip2tri.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="triangulation\clipper\clipper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="triangulation\poly2tri\common\shapes.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="triangulation\poly2tri\sweep\advancing_front.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Triangulation</Filter>
     </ClCompile>
     <ClCompile Include="triangulation\poly2tri\sweep\cdt.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Triangulation</Filter>
+    </ClCompile>
+    <ClCompile Include="triangulation\clip2tri\clip2tri.cpp">
+      <Filter>Source Files\Triangulation</Filter>
+    </ClCompile>
+    <ClCompile Include="triangulation\clipper\clipper.cpp">
+      <Filter>Source Files\Triangulation</Filter>
+    </ClCompile>
+    <ClCompile Include="triangulation\poly2tri\common\shapes.cc">
+      <Filter>Source Files\Triangulation</Filter>
     </ClCompile>
     <ClCompile Include="triangulation\poly2tri\sweep\sweep.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Triangulation</Filter>
     </ClCompile>
     <ClCompile Include="triangulation\poly2tri\sweep\sweep_context.cc">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Triangulation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -93,32 +99,32 @@
     <ClInclude Include="Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="triangulation\clip2tri\clip2tri.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="triangulation\clipper\clipper.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="triangulation\poly2tri\common\shapes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="triangulation\poly2tri\common\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="triangulation\poly2tri\sweep\advancing_front.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Triangulation</Filter>
     </ClInclude>
     <ClInclude Include="triangulation\poly2tri\sweep\cdt.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Triangulation</Filter>
     </ClInclude>
-    <ClInclude Include="triangulation\poly2tri\sweep\sweep.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="triangulation\clip2tri\clip2tri.h">
+      <Filter>Header Files\Triangulation</Filter>
     </ClInclude>
-    <ClInclude Include="triangulation\poly2tri\sweep\sweep_context.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="triangulation\clipper\clipper.hpp">
+      <Filter>Header Files\Triangulation</Filter>
     </ClInclude>
     <ClInclude Include="triangulation\poly2tri\poly2tri.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Triangulation</Filter>
+    </ClInclude>
+    <ClInclude Include="triangulation\poly2tri\common\shapes.h">
+      <Filter>Header Files\Triangulation</Filter>
+    </ClInclude>
+    <ClInclude Include="triangulation\poly2tri\sweep\sweep.h">
+      <Filter>Header Files\Triangulation</Filter>
+    </ClInclude>
+    <ClInclude Include="triangulation\poly2tri\sweep\sweep_context.h">
+      <Filter>Header Files\Triangulation</Filter>
+    </ClInclude>
+    <ClInclude Include="triangulation\poly2tri\common\utils.h">
+      <Filter>Header Files\Triangulation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
