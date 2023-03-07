@@ -42,8 +42,7 @@ public:
         textEdit->setMouseTracking(true);
         textEdit->setStyleSheet(QString::fromUtf8("color: rgb(204, 204, 204);\n"
 "font: 14pt \"Consolas\";\n"
-"border:0px;\n"
-""));
+"border:0px;"));
         textEdit->setLineWidth(1);
         textEdit->setCursorWidth(2);
 

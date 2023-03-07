@@ -5,6 +5,46 @@
 #include <fstream>
 #include <sstream>
 #include <QDebug>
+#include <glfw3.h>
+#include <clipper/clipper.hpp>
+#include <poly2tri/poly2tri.h>
+#include <clip2tri/clip2tri.h>
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+#define WINDOW_TITLE "RT Terminal"
+#define OPENGL_VERSION_MAJOR 4
+#define OPENGL_VERSION_MINOR 6
+
+#define initOpenGL(){\
+	glfwInit();\
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, OPENGL_VERSION_MAJOR);\
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR);\
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);\
+    \
+}
+
+#define createWindow(SCR_WIDTH,SCR_HEIGHT,TITLE) glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, TITLE, NULL, NULL);
+
+#define initWindowAndGlad(window){\
+    if (window == NULL)\
+    {\
+        qDebug() << "Failed to create GLFW window"<<"\n";\
+        glfwTerminate();\
+        return;\
+    }\
+    glfwMakeContextCurrent(window);\
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);\
+    \
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))\
+    {\
+        qDebug() << "Failed to initialize GLAD"<<"\n";\
+        return;\
+    }\
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+
 
 class Shader
 {
@@ -58,35 +98,43 @@ private:
     GLenum target;
 };
 
-
-struct Polygon {
+struct Primitive {
     unsigned VAO;
     unsigned VBO;
-    unsigned vertNum;
-    Polygon(unsigned size, void* data);
+    unsigned VNUM;
+    Primitive(unsigned vertsNum, void* data);
 };
 
-struct Trajectory {
-    unsigned VAO;
-    unsigned VBO;
-    unsigned vertNum;
-    Trajectory(unsigned size, void* data);
-};
-
-struct QueryTraj {
-    unsigned VAO;
-    unsigned VBO;
-    unsigned vertNum;
-    QueryTraj(unsigned size, void* data);
-};
+//struct Trajectory {
+//    unsigned VAO;
+//    unsigned VBO;
+//    unsigned VNUM;
+//    Trajectory(unsigned vertsNum, void* data);
+//};
+//
+//struct Polygon {
+//    unsigned VAO;
+//    unsigned VBO;
+//    unsigned VNUM;
+//    Polygon(unsigned vertsNum, void* data);
+//};
+//
+//struct QueryTraj {
+//    unsigned VAO;
+//    unsigned VBO;
+//    unsigned VNUM;
+//    QueryTraj(unsigned vertsNum, void* data);
+//};
 
 struct Point {
-    double x, y;
+    float x, y;
     Point() { x = 0; y = 0; }
-    Point(double xx, double yy) { x = xx; y = yy; }
+    Point(float xx, float yy) { x = xx; y = yy; }
     Point(const Point& pt) { x = pt.x; y = pt.y; };
-    template<class T, class U> Point(T in_x, U in_y) { x = static_cast<double>(in_x); y = static_cast<double>(in_y); }
+    template<class T, class U> Point(T in_x, U in_y) { x = static_cast<float>(in_x); y = static_cast<float>(in_y); }
 };
+
+typedef std::vector<Point> Sequence;
 
 struct GLTextureBuffer {
     GLTextureBuffer() :texId(0), bufId(0) {}
@@ -140,8 +188,8 @@ private:
 
 struct CoordBound
 {
-    double maxx, maxy, minx, miny;
-    CoordBound(double maxu, double maxv, double minu, double minv) {
+    float maxx, maxy, minx, miny;
+    CoordBound(float maxu, float maxv, float minu, float minv) {
         maxx = maxu;
         maxy = maxv;
         minx = minu;
@@ -149,4 +197,5 @@ struct CoordBound
     }
 };
 
+void triangulatePolygons(Sequence& polys, std::vector<float>& verts, float ids);
 

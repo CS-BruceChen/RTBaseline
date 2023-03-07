@@ -5,7 +5,7 @@
 #include "GLObject.h"
 #include "Log.h"
 #include <algorithm>
-typedef std::vector<Point> Sequence;
+
 typedef std::vector<size_t> IDArray;
 class PrimitiveDB {
     //default constructor

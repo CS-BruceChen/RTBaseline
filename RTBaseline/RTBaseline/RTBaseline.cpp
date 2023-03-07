@@ -7,14 +7,21 @@ RTBaseline::RTBaseline(QWidget *parent)
     //init ui
     ui.setupUi(this);
     //set welcome text
-    ui.textEdit->setText("@Copyright by brucechen@whu.edu.cn\nWelcome to Raster Trajectory Terminal v0.0.0 ! ");
+    QString welcome = "Copyright (c) 2023, Bruce Chen, brucechen@whu.edu.cn\nWelcome to RT Terminal v0.0.0\n"
+        "  _____ _______   _______                  _             _ \n"
+        " |  __ \\__   __| |__   __|                (_)           | |\n"
+        " | |__) | | |       | | ___ _ __ _ __ ___  _ _ __   __ _| |\n"
+        " |  _  /  | |       | |/ _ \\ '__| '_ ` _ \\| | '_ \\ / _` | |\n"
+        " | | \\ \\  | |       | |  __/ |  | | | | | | | | | | (_| | |\n"
+        " |_|  \\_\\ |_|       |_|\\___|_|  |_| |_| |_|_|_| |_|\\__,_|_|\n";
+
+    ui.textEdit->setText(welcome);
     ui.textEdit->setWordWrapMode(QTextOption::WrapAnywhere);
     //move cursor to the end;
     startNewLine();
     //connect & install filter
     connect(ui.textEdit, SIGNAL(ui.textEdit->cursorPositionChanged()), SLOT(on_textEdit_cursorPositionChanged()));
     ui.textEdit->installEventFilter(this);
-    //
     hisIndex = 0;
     isNeverHitUp = true;
 }

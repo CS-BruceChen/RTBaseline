@@ -401,6 +401,57 @@ void DPInfo::setUniformDPInfo(Shader* s) {
     s->setUint("dpinfo.total_step", total_step);
 }
 
+Primitive::Primitive(unsigned vertsNum,void* data) {
+    VAO = 0;
+    VBO = 0;
+    VNUM = vertsNum;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    glBufferData(GL_ARRAY_BUFFER, 3 * vertsNum * sizeof(float), data, GL_STATIC_DRAW);//x, y, id
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+void processInput(GLFWwindow* window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
+void triangulatePolygons(Sequence& poly, std::vector<float>& verts, float id) {
+    verts.clear();
+    std::vector<float> tverts(0), tids(0);
+    std::vector<c2t::Point> c2tPoly;
+    for (unsigned i = 0; i < poly.size(); i++) {
+        c2tPoly.push_back(c2t::Point(poly[i].x, poly[i].y));
+    }
+    std::vector<std::vector<c2t::Point>> inputPolygon;
+    inputPolygon.push_back(c2tPoly);
+    std::vector<c2t::Point> outputTriangles;
+    std::vector<c2t::Point> boundingPolygon;
+    c2t::clip2tri clip2tri;
+    clip2tri.triangulate(inputPolygon, outputTriangles, boundingPolygon);
+    for (int j = 0; j < outputTriangles.size(); j++) {
+        float x = float(outputTriangles[j].x);
+        float y = float(outputTriangles[j].y);
+        verts.push_back(x);
+        verts.push_back(y);
+        verts.push_back(id);
+    }
+}
+
 
 
 

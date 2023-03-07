@@ -21,6 +21,7 @@ public:
     void set_run_delete_info(const std::string& deleteObject, int objectNum, std::vector<int> errIds);
     void set_print_info(const std::string& printObject, std::string& printInfo);
     void set_print_info(const std::string& printObject, std::string& printInfo, std::vector<int> errIds);
+    void set_show_info(const std::string& showObject, int objectNum, std::vector<int> errIds);
 private:
     std::string log;
     bool isSuccess;

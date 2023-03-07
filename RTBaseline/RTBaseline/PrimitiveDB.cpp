@@ -4,12 +4,11 @@ std::vector<Sequence> PrimitiveDB::TDBArray(0);
 std::vector<Sequence> PrimitiveDB::PDBArray(0);
 std::vector<Sequence> PrimitiveDB::QDBArray(0);
 CoordBound PrimitiveDB::getBound(std::vector<Sequence> primitive) {
-    std::vector<Sequence> nP;//normalized Primitive
-    double MAXX=DBL_MIN, MAXY=DBL_MIN, MINX=DBL_MAX, MINY=DBL_MAX;
+    float MAXX=DBL_MIN, MAXY=DBL_MIN, MINX=DBL_MAX, MINY=DBL_MAX;
     for (size_t i = 0; i < primitive.size(); ++i) {
         for (size_t j = 0; j < primitive[i].size(); ++j) {
-            double dx = primitive[i][j].x;
-            double dy = primitive[i][j].y;
+            float dx = primitive[i][j].x;
+            float dy = primitive[i][j].y;
             if (dx > MAXX) MAXX = dx;
             if (dx < MINX) MINX = dx;
             if (dy > MAXY) MAXY = dy;
@@ -18,7 +17,6 @@ CoordBound PrimitiveDB::getBound(std::vector<Sequence> primitive) {
     }
     return CoordBound(MAXX, MAXY, MINX, MINY);
 }
-
 
 //ADD
 void TrajectoryDB::ADD(std::vector<Sequence> seqArray) {
@@ -231,29 +229,165 @@ IDArray QueryTrajDB::SELECT(IDArray tids, IDArray pids, int topk) {
 
 
 void TrajectoryDB::SHOW(IDArray ids) {
-    qDebug() << "t show\n";
     std::vector<int> errIds;
     std::vector<int> showIds;
     for (size_t i = 0; i < ids.size(); ++i) {
-        size_t eraseIndex = ids[i];
-        if (eraseIndex >= TDBArray.size())
-            errIds.push_back(eraseIndex);
+        size_t showIndex = ids[i];
+        if (showIndex >= TDBArray.size())
+            errIds.push_back(showIndex);
         else
-            showIds.push_back(eraseIndex);
+            showIds.push_back(showIndex);
     }
     std::vector<Sequence>* db = &TDBArray;
-    CoordBound cb = PrimitiveDB::getBound(*db);
-    for (size_t i = 0; i < showIds.size(); ++i) {
-        size_t id = showIds[i];
-        Sequence seq = (*db)[id];
-        //todo:类似main中的line，生成一个line指针数组。每个指针都对应一个new出来的Trajectory
-    }
+    const char* windowTitle = "RT Terminal-Trajectory Visualization";
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
+    initWindowAndGlad(window);
 
+    CoordBound cb = PrimitiveDB::getBound(*db);
+    Primitive** trajArray = new Primitive* [showIds.size()];//指针数组的首地址是指向指针的指针
+    for (size_t i = 0; i < showIds.size(); ++i) {
+        unsigned id = showIds[i];
+        Sequence seq = (*db)[id];
+        //todo:类似main中的line，生成一个line指针数组。每个指针都对应一个new出来的Primitive
+        unsigned vertsNum = seq.size();
+        std::vector<float> verts;
+        for (size_t j = 0; j < seq.size(); ++j) {
+            verts.push_back(seq[j].x);
+            verts.push_back(seq[j].y);
+            verts.push_back(id);
+        }
+        trajArray[i] = new Primitive(vertsNum, verts.data());
+    }
+    
+    Shader* shader = Shader::newShader("drawPrimitives");
+    shader->use();
+    shader->setFloat("MAXX", cb.maxx);
+    shader->setFloat("MAXY", cb.maxy);
+    shader->setFloat("MINX", cb.minx);
+    shader->setFloat("MINY", cb.miny);
+    shader->setFloat("MAXN", (float)showIds.size());
+    DBLog.set_show_info("trajectory", showIds.size(), errIds);
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        shader->use();
+        for (unsigned i = 0; i < showIds.size(); ++i) {
+            glBindVertexArray(trajArray[i]->VAO);
+            glDrawArrays(GL_LINE_STRIP, 0, trajArray[i]->VNUM);
+            glBindVertexArray(0);
+        }
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    glfwTerminate();
 }
 void PolygonDB::SHOW(IDArray ids) {
-    qDebug() << "p show\n";
+    std::vector<int> errIds;
+    std::vector<int> showIds;
+    for (size_t i = 0; i < ids.size(); ++i) {
+        size_t showIndex = ids[i];
+        if (showIndex >= PDBArray.size())
+            errIds.push_back(showIndex);
+        else
+            showIds.push_back(showIndex);
+    }
+    std::vector<Sequence>* db = &PDBArray;
+    const char* windowTitle = "RT Terminal-Polygon Visualization";
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
+    initWindowAndGlad(window);
+
+    CoordBound cb = PrimitiveDB::getBound(*db);
+    Primitive** polyArray = new Primitive * [showIds.size()];//指针数组的首地址是指向指针的指针
+    for (size_t i = 0; i < showIds.size(); ++i) {
+        unsigned id = showIds[i];
+        Sequence seq = (*db)[id];
+        std::vector<float> verts;
+        triangulatePolygons(seq, verts, id);
+        unsigned vertsNum = verts.size() / 3;
+        polyArray[i] = new Primitive(vertsNum, verts.data());
+    }
+
+    Shader* shader = Shader::newShader("drawPrimitives");
+    shader->use();
+    shader->setFloat("MAXX", cb.maxx);
+    shader->setFloat("MAXY", cb.maxy);
+    shader->setFloat("MINX", cb.minx);
+    shader->setFloat("MINY", cb.miny);
+    shader->setFloat("MAXN", (float)showIds.size());
+    DBLog.set_show_info("trajectory", showIds.size(), errIds);
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        shader->use();
+        for (unsigned i = 0; i < showIds.size(); ++i) {
+            glBindVertexArray(polyArray[i]->VAO);
+            glDrawArrays(GL_TRIANGLES, 0, polyArray[i]->VNUM);
+            glBindVertexArray(0);
+        }
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    glfwTerminate();
+
+
 }
 void QueryTrajDB::SHOW(IDArray ids) {
-    qDebug() << "q show\n";
+    std::vector<int> errIds;
+    std::vector<int> showIds;
+    for (size_t i = 0; i < ids.size(); ++i) {
+        size_t showIndex = ids[i];
+        if (showIndex >= QDBArray.size())
+            errIds.push_back(showIndex);
+        else
+            showIds.push_back(showIndex);
+    }
+    std::vector<Sequence>* db = &QDBArray;
+    const char* windowTitle = "RT Terminal-Trajectory-to-be queried Visualization";
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
+    initWindowAndGlad(window);
+
+    CoordBound cb = PrimitiveDB::getBound(*db);
+    Primitive** qtrajArray = new Primitive * [showIds.size()];//指针数组的首地址是指向指针的指针
+    for (size_t i = 0; i < showIds.size(); ++i) {
+        unsigned id = showIds[i];
+        Sequence seq = (*db)[id];
+        //todo:类似main中的line，生成一个line指针数组。每个指针都对应一个new出来的Trajectory
+        unsigned vertsNum = seq.size();
+        std::vector<float> verts;
+        for (size_t j = 0; j < seq.size(); ++j) {
+            verts.push_back(seq[j].x);
+            verts.push_back(seq[j].y);
+            verts.push_back(id);
+        }
+        qtrajArray[i] = new Primitive(vertsNum, verts.data());
+    }
+
+    Shader* shader = Shader::newShader("drawPrimitives");
+    shader->use();
+    shader->setFloat("MAXX", cb.maxx);
+    shader->setFloat("MAXY", cb.maxy);
+    shader->setFloat("MINX", cb.minx);
+    shader->setFloat("MINY", cb.miny);
+    shader->setFloat("MAXN", (float)showIds.size());
+    DBLog.set_show_info("trajectory-to-be-queried", showIds.size(), errIds);
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        shader->use();
+        for (unsigned i = 0; i < showIds.size(); ++i) {
+            glBindVertexArray(qtrajArray[i]->VAO);
+            glDrawArrays(GL_LINE_STRIP, 0, qtrajArray[i]->VNUM);
+            glBindVertexArray(0);
+        }
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    glfwTerminate();
 }
 

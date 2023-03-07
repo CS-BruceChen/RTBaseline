@@ -662,9 +662,18 @@ void Parser::processShowCommand(TokenList tokenList) {
     IDArray ids = fectchIDFromInput(tokenList[2].content);
     if (!parserLog.getIsSuccess()) return;
     switch (tokenList[1].type) {
-    case TRAJECTORY: tdb.SHOW(ids); break;
-    case POLYGON: pdb.SHOW(ids); break;
-    case QUERY_TRAJ: qdb.SHOW(ids); break;
+    case TRAJECTORY: 
+        tdb.SHOW(ids); 
+        parserLog.setLog(tdb.getDBLog());
+        break;
+    case POLYGON: 
+        pdb.SHOW(ids); 
+        parserLog.setLog(pdb.getDBLog());
+        break;
+    case QUERY_TRAJ: 
+        qdb.SHOW(ids); 
+        parserLog.setLog(qdb.getDBLog());
+        break;
     default:break;
     }
 }

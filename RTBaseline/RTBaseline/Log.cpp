@@ -135,3 +135,15 @@ void Log::set_print_info(const std::string& printObject, std::string& printInfo,
     log += "The " + printObject + " in DB is as follows:\n";
     log += printInfo;
 }
+
+void Log::set_show_info(const std::string& showObject, int objectNum, std::vector<int> errIds) {
+    log = "Execute <show command>\n Visualize " + std::to_string(objectNum) + " " + showObject + " in DB\n";
+    if (errIds.size() > 0) {
+        log += showObject + " with id: ";
+        for (size_t i = 0; i < errIds.size(); ++i) {
+            log += std::to_string(errIds[i]);
+            log += " ";
+        }
+        log += " not in the DB, visulization failed\n";
+    }
+}
