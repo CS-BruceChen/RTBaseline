@@ -134,5 +134,11 @@
     <None Include="drawPrimitives.fs.glsl">
       <Filter>Source Files\Shader</Filter>
     </None>
+    <None Include="TRQ.vs.glsl">
+      <Filter>Source Files\Shader</Filter>
+    </None>
+    <None Include="TRQ.fs.glsl">
+      <Filter>Source Files\Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

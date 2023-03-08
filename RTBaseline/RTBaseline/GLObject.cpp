@@ -297,10 +297,20 @@ void GLTextureBuffer::setData(int size, GLenum format, void* data) {
 }
 std::vector<int> GLTextureBuffer::getBuffer() {
     std::vector<int> data(size / sizeof(int));
-    glBindBuffer(GL_TEXTURE_BUFFER, bufId);
     GLenum err = glGetError();
+    if (err > 0) {
+        qDebug() << "getBuffer: before glBindBuffer error: " << err << "\n";
+    }
+    glBindBuffer(GL_TEXTURE_BUFFER, bufId);
+    err = glGetError();
+    if (err > 0) {
+        qDebug() << "getBuffer: glBindBuffer error: " << err << "\n";
+    }
     glGetBufferSubData(GL_TEXTURE_BUFFER, 0, size, data.data());
     err = glGetError();
+    if (err > 0) {
+        qDebug() << "getBuffer: glGetBufferSubData error:" << err << "\n";
+    }
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
     err = glGetError();

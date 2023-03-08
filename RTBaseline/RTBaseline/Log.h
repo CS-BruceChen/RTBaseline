@@ -1,6 +1,7 @@
 #pragma once
 #include<string>
 #include<vector>
+typedef std::vector<size_t> IDArray;
 struct Log {
     Log() :log(""), isSuccess(true), errPos(0) {};
 public:
@@ -18,10 +19,10 @@ public:
     void set_wrong_data_format_err(int errPosition, std::string& errStr);
     void set_wrong_command_err();
     void set_run_add_info(const std::string& addObject,int objectNum);
-    void set_run_delete_info(const std::string& deleteObject, int objectNum, std::vector<int> errIds);
+    void set_run_delete_info(const std::string& deleteObject, int objectNum, IDArray errIds);
     void set_print_info(const std::string& printObject, std::string& printInfo);
-    void set_print_info(const std::string& printObject, std::string& printInfo, std::vector<int> errIds);
-    void set_show_info(const std::string& showObject, int objectNum, std::vector<int> errIds);
+    void set_print_info(const std::string& printObject, std::string& printInfo, IDArray errIds);
+    void set_show_info(const std::string& showObject, int objectNum, IDArray errIds);
 private:
     std::string log;
     bool isSuccess;

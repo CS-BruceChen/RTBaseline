@@ -103,7 +103,7 @@ void Log::set_run_add_info(const std::string& addObject,int objectNum) {
     //isSuccess = true;
 }
 
-void Log::set_run_delete_info(const std::string& deleteObject, int objectNum, std::vector<int> errIds) {
+void Log::set_run_delete_info(const std::string& deleteObject, int objectNum, IDArray errIds) {
     log = "Execute <delete command>: Delete " + std::to_string(objectNum) + " " + deleteObject + " from DB\n";
     if (errIds.size() > 0) {
         log += deleteObject + " with id: ";
@@ -122,7 +122,7 @@ void Log::set_print_info(const std::string& printObject, std::string& printInfo)
     log += printInfo;
 }
 
-void Log::set_print_info(const std::string& printObject, std::string& printInfo, std::vector<int> errIds) {
+void Log::set_print_info(const std::string& printObject, std::string& printInfo, IDArray errIds) {
     log = "Execute <print command>\n";
     if (errIds.size() > 0) {
         log += printObject + " with id: ";
@@ -136,7 +136,7 @@ void Log::set_print_info(const std::string& printObject, std::string& printInfo,
     log += printInfo;
 }
 
-void Log::set_show_info(const std::string& showObject, int objectNum, std::vector<int> errIds) {
+void Log::set_show_info(const std::string& showObject, int objectNum, IDArray errIds) {
     log = "Execute <show command>\n Visualize " + std::to_string(objectNum) + " " + showObject + " in DB\n";
     if (errIds.size() > 0) {
         log += showObject + " with id: ";

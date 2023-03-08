@@ -3,8 +3,13 @@
 std::vector<Sequence> PrimitiveDB::TDBArray(0);
 std::vector<Sequence> PrimitiveDB::PDBArray(0);
 std::vector<Sequence> PrimitiveDB::QDBArray(0);
-CoordBound PrimitiveDB::getBound(std::vector<Sequence> primitive) {
-    float MAXX=DBL_MIN, MAXY=DBL_MIN, MINX=DBL_MAX, MINY=DBL_MAX;
+float PrimitiveDB::maxx = FLT_MIN;
+float PrimitiveDB::maxy = FLT_MIN;
+float PrimitiveDB::minx = FLT_MAX;
+float PrimitiveDB::miny = FLT_MAX;
+
+CoordBound PrimitiveDB::getBound(std::vector<Sequence>& primitive) {
+    float MAXX=FLT_MIN, MAXY=FLT_MIN, MINX=FLT_MAX, MINY=FLT_MAX;
     for (size_t i = 0; i < primitive.size(); ++i) {
         for (size_t j = 0; j < primitive[i].size(); ++j) {
             float dx = primitive[i][j].x;
@@ -17,22 +22,108 @@ CoordBound PrimitiveDB::getBound(std::vector<Sequence> primitive) {
     }
     return CoordBound(MAXX, MAXY, MINX, MINY);
 }
+errAndLeg PrimitiveDB::idRangeCheck(IDArray ids, std::vector<Sequence>& db) {
+    errAndLeg eL;
+    for (size_t i = 0; i < ids.size(); ++i) {
+        if (ids[i] >= db.size())
+            eL.errIds.push_back(ids[i]);
+        else
+            eL.legIds.push_back(ids[i]);
+    }
+    return eL;
+}
+Primitive** PrimitiveDB::createTrajectoryArray(std::vector<Sequence>* db, IDArray ids) {
+    Primitive** primitiveArray = new Primitive * [ids.size()];
+    for (size_t i = 0; i < ids.size(); ++i) {
+        unsigned id = ids[i];
+        Sequence seq = (*db)[id];
+        unsigned vertsNum = seq.size();
+        std::vector<float> verts;
+        for (size_t j = 0; j < seq.size(); ++j) {
+            verts.push_back(seq[j].x);
+            verts.push_back(seq[j].y);
+            verts.push_back(id);
+            //qDebug() << seq[j].x << " " << seq[j].y << " " << id << "\n";
+        }
+        primitiveArray[i] = new Primitive(vertsNum, verts.data());
+    }
+    return primitiveArray;
+}
+Primitive** PrimitiveDB::createPolygonArray(std::vector<Sequence>* db, IDArray ids) {
+    Primitive** polyArray = new Primitive * [ids.size()];//指针数组的首地址是指向指针的指针
+    for (size_t i = 0; i < ids.size(); ++i) {
+        unsigned id = ids[i];
+        Sequence seq = (*db)[id];
+        std::vector<float> verts;
+        triangulatePolygons(seq, verts, id);
+        unsigned vertsNum = verts.size() / 3;
+        polyArray[i] = new Primitive(vertsNum, verts.data());
+    }
+    return polyArray;
+}
+void PrimitiveDB::setBound(Shader* shader,float maxn) {
+    shader->use();
+    shader->setFloat("MAXX", maxx);
+    shader->setFloat("MAXY", maxy);
+    shader->setFloat("MINX", minx);
+    shader->setFloat("MINY", miny);
+    shader->setFloat("MAXN", maxn);
+}
+void PrimitiveDB::addBound(Point p) {
+    float fx = p.x;
+    float fy = p.y;
+    if (fx > maxx) maxx = fx;
+    if (fx < minx) minx = fx;
+    if (fy > maxy) maxy = fy;
+    if (fy < miny) miny = fy;
+}
+void PrimitiveDB::deleteBound(Point p) {
+    //也就是找第二大，但是这很难，至少不是一个常数复杂度的问题
+}
+IDArray PrimitiveDB::getTopk(std::vector<int> retFromShader, int topk) {
+    struct resultWithIndex {
+        int value;
+        size_t index;
+        resultWithIndex(int val, size_t ind) { value = val; index = ind; }
+    };
 
+    std::vector<resultWithIndex> rI;
+    for (size_t i = 0; i < retFromShader.size(); ++i) {
+        rI.push_back(resultWithIndex(retFromShader[i], i));
+    }
+    sort(rI.begin(), rI.end(), [=](resultWithIndex a, resultWithIndex b)->bool {return a.value > b.value; });
+
+    size_t realTopk = (rI.size() < topk) ? rI.size() : topk;
+    IDArray resultIds;
+    for (size_t i = 0; i < realTopk; ++i) {
+        resultIds.push_back(rI[i].index);
+    }
+    return resultIds;
+}
 //ADD
 void TrajectoryDB::ADD(std::vector<Sequence> seqArray) {
     for (size_t i = 0; i < seqArray.size(); ++i) {
+        for (size_t j = 0; j < seqArray[i].size(); ++j) {
+            addBound(seqArray[i][j]);
+        }
         TDBArray.push_back(seqArray[i]);
     }
     DBLog.set_run_add_info("trajectory", seqArray.size());
 }
 void PolygonDB::ADD(std::vector<Sequence> seqArray) {
     for (size_t i = 0; i < seqArray.size(); ++i) {
+        for (size_t j = 0; j < seqArray[i].size(); ++j) {
+            addBound(seqArray[i][j]);
+        }
         PDBArray.push_back(seqArray[i]);
     }
     DBLog.set_run_add_info("polygon", (int)seqArray.size());
 }
 void QueryTrajDB::ADD(std::vector<Sequence> seqArray) {
     for (size_t i = 0; i < seqArray.size(); ++i) {
+        for (size_t j = 0; j < seqArray[i].size(); ++j) {
+            addBound(seqArray[i][j]);
+        }
         QDBArray.push_back(seqArray[i]);
     }
     DBLog.set_run_add_info("trajectory-to-be-queried", (int)seqArray.size());
@@ -40,15 +131,9 @@ void QueryTrajDB::ADD(std::vector<Sequence> seqArray) {
 
 //DELETE
 void TrajectoryDB::DELETE(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> deleteIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t eraseIndex = ids[i];
-        if (eraseIndex >= TDBArray.size())
-            errIds.push_back(eraseIndex);
-        else
-            deleteIds.push_back(eraseIndex);
-    }
+    errAndLeg eL = idRangeCheck(ids,TDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray deleteIds = eL.legIds;
     DBLog.set_run_delete_info("trajectory", deleteIds.size(), errIds);
     //deleteIds 降序并去重，避免重复删除和动态删除引起的下标变化
     sort(deleteIds.begin(), deleteIds.end(), [=](size_t a, size_t b)->bool {return a > b;});
@@ -58,16 +143,10 @@ void TrajectoryDB::DELETE(IDArray ids) {
     }
 }
 void PolygonDB::DELETE(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> deleteIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t eraseIndex = ids[i];
-        if (eraseIndex >= PDBArray.size())
-            errIds.push_back(eraseIndex);
-        else
-            deleteIds.push_back(eraseIndex);
-    }
-    DBLog.set_run_delete_info("trajectory", deleteIds.size(), errIds);
+    errAndLeg eL = idRangeCheck(ids, PDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray deleteIds = eL.legIds;
+    DBLog.set_run_delete_info("polygon", deleteIds.size(), errIds);
     sort(deleteIds.begin(), deleteIds.end(), [=](size_t a, size_t b)->bool {return a > b; });
     for (size_t i = 0; i < deleteIds.size(); ++i) {
         if (i < deleteIds.size() - 1 && deleteIds[i] == deleteIds[i + 1]) continue;
@@ -75,15 +154,9 @@ void PolygonDB::DELETE(IDArray ids) {
     }
 }
 void QueryTrajDB::DELETE(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> deleteIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t eraseIndex = ids[i];
-        if (eraseIndex >= QDBArray.size())
-            errIds.push_back(eraseIndex);
-        else
-            deleteIds.push_back(eraseIndex);
-    }
+    errAndLeg eL = idRangeCheck(ids, QDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray deleteIds = eL.legIds;
     DBLog.set_run_delete_info("trajectory-to-be-queried", deleteIds.size(), errIds);
     sort(deleteIds.begin(), deleteIds.end(), [=](size_t a, size_t b)->bool {return a > b; });
     for (size_t i = 0; i < deleteIds.size(); ++i) {
@@ -137,19 +210,13 @@ void QueryTrajDB::PRINT() {
 }
 
 //PRINT-(ID)
-void TrajectoryDB::PRINT(IDArray input_ids) {
+void TrajectoryDB::PRINT(IDArray ids) {
     std::string printInfo = "";
-    std::vector<int> errIds;
-    std::vector<int> result_ids;
-    for (size_t i = 0; i < input_ids.size(); ++i) {
-        size_t printIndex = input_ids[i];
-        if (printIndex >= TDBArray.size())
-            errIds.push_back(printIndex);
-        else
-            result_ids.push_back(printIndex);
-    }
-    for (size_t i = 0; i < result_ids.size(); ++i) {
-        size_t id = result_ids[i];
+    errAndLeg eL = idRangeCheck(ids,TDBArray);
+    IDArray errIds=eL.errIds;
+    IDArray printIds=eL.legIds;
+    for (size_t i = 0; i < printIds.size(); ++i) {
+        size_t id = printIds[i];
         printInfo += "tid: " + std::to_string(id) + "\n";
         Sequence seq = TDBArray[id];
         for (size_t j = 0; j < seq.size(); ++j) {
@@ -161,20 +228,14 @@ void TrajectoryDB::PRINT(IDArray input_ids) {
     }
     DBLog.set_print_info("trajectory", printInfo, errIds);
 }
-void PolygonDB::PRINT(IDArray input_ids) {
+void PolygonDB::PRINT(IDArray ids) {
     std::string printInfo = "";
-    std::vector<int> errIds;
-    std::vector<int> result_ids;
-    for (size_t i = 0; i < input_ids.size(); ++i) {
-        size_t printIndex = input_ids[i];
-        if (printIndex >= PDBArray.size())
-            errIds.push_back(printIndex);
-        else
-            result_ids.push_back(printIndex);
-    }
-    for (size_t i = 0; i < result_ids.size(); ++i) {
-        size_t id = result_ids[i];
-        printInfo += "tid: " + std::to_string(id) + "\n";
+    errAndLeg eL = idRangeCheck(ids, PDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray printIds = eL.legIds;
+    for (size_t i = 0; i < printIds.size(); ++i) {
+        size_t id = printIds[i];
+        printInfo += "pid: " + std::to_string(id) + "\n";
         Sequence seq = PDBArray[id];
         for (size_t j = 0; j < seq.size(); ++j) {
             double dx = seq[j].x;
@@ -185,19 +246,13 @@ void PolygonDB::PRINT(IDArray input_ids) {
     }
     DBLog.set_print_info("polygon", printInfo, errIds);
 }
-void QueryTrajDB::PRINT(IDArray input_ids) {
+void QueryTrajDB::PRINT(IDArray ids) {
     std::string printInfo = "";
-    std::vector<int> errIds;
-    std::vector<int> result_ids;
-    for (size_t i = 0; i < input_ids.size(); ++i) {
-        size_t printIndex = input_ids[i];
-        if (printIndex >= QDBArray.size())
-            errIds.push_back(printIndex);
-        else
-            result_ids.push_back(printIndex);
-    }
-    for (size_t i = 0; i < result_ids.size(); ++i) {
-        size_t id = result_ids[i];
+    errAndLeg eL = idRangeCheck(ids, QDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray printIds = eL.legIds;
+    for (size_t i = 0; i < printIds.size(); ++i) {
+        size_t id = printIds[i];
         printInfo += "qid: " + std::to_string(id) + "\n";
         Sequence seq = QDBArray[id];
         for (size_t j = 0; j < seq.size(); ++j) {
@@ -212,10 +267,66 @@ void QueryTrajDB::PRINT(IDArray input_ids) {
 
 
 IDArray TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
-    qDebug() << "t slt\n";
-    IDArray newid;
-    return newid;
+    //定义必要的数据成员
+    errAndLeg eLt = idRangeCheck(tids, TDBArray);
+    errAndLeg eLp = idRangeCheck(pids, PDBArray);
+    IDArray errTids = eLt.errIds;
+    IDArray errPids = eLp.errIds;
+    IDArray queryTids = eLt.legIds;
+    IDArray queryPids = eLp.legIds;
+    const char* windowTitle = "RT Terminal Visualization";
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
+    initWindowAndGlad(window);
+    Primitive** trajArray = createTrajectoryArray(&TDBArray, queryTids);
+    
+    Primitive** polyArray = createPolygonArray(&PDBArray, queryPids);
+    Shader* TShader = Shader::newShader("drawPrimitives");
+    Shader* PShader = Shader::newShader("TRQ");
+    FBO* fbo = new FBO(WINDOW_WIDTH, WINDOW_HEIGHT, FBO::Attachment::NoAttachment, GL_TEXTURE_2D, GL_RGB);
+    unsigned framebuffer = fbo->getFBO();
+    unsigned textureColorbuffer = fbo->texture();
+    GLTextureBuffer texBuf;
+    std::vector<int> resultData;
+    texBuf.create(queryTids.size() * sizeof(int), GL_R32I, resultData.data());
+    glBindImageTexture(0, texBuf.getTexId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32I);
+    
+    //render loop
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        //查询轨迹，则首先在fbo绘制轨迹
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer); {
+            setBound(TShader, queryTids.size());
+            for (unsigned i = 0; i < queryTids.size(); ++i) {
+                glBindVertexArray(trajArray[i]->VAO);
+                glDrawArrays(GL_LINE_STRIP, 0, trajArray[i]->VNUM);
+                glBindVertexArray(0);
+            }
+        } glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //绘制polygon
+        setBound(PShader, queryPids.size());
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        for (unsigned i = 0; i < queryPids.size(); ++i) {
+            glBindVertexArray(polyArray[0]->VAO);
+            glDrawArrays(GL_TRIANGLES, 0, polyArray[0]->VNUM);
+            glBindVertexArray(0);
+        }
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    resultData = texBuf.getBuffer();
+    for (size_t i = 0; i < resultData.size(); ++i) {
+        qDebug() << resultData[i] << "\n";
+    }
+    IDArray retIds = getTopk(resultData, topk);
+    texBuf.destroy();
+    glfwTerminate();
+    return retIds;
 }
+
 IDArray PolygonDB::SELECT(IDArray tids, IDArray pids, int topk) {
     qDebug() << "p slt\n";
     IDArray newid;
@@ -229,44 +340,19 @@ IDArray QueryTrajDB::SELECT(IDArray tids, IDArray pids, int topk) {
 
 
 void TrajectoryDB::SHOW(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> showIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t showIndex = ids[i];
-        if (showIndex >= TDBArray.size())
-            errIds.push_back(showIndex);
-        else
-            showIds.push_back(showIndex);
-    }
+    errAndLeg eL = idRangeCheck(ids, TDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray showIds = eL.legIds;
     std::vector<Sequence>* db = &TDBArray;
     const char* windowTitle = "RT Terminal-Trajectory Visualization";
     initOpenGL();
     GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
     initWindowAndGlad(window);
-
-    CoordBound cb = PrimitiveDB::getBound(*db);
-    Primitive** trajArray = new Primitive* [showIds.size()];//指针数组的首地址是指向指针的指针
-    for (size_t i = 0; i < showIds.size(); ++i) {
-        unsigned id = showIds[i];
-        Sequence seq = (*db)[id];
-        //todo:类似main中的line，生成一个line指针数组。每个指针都对应一个new出来的Primitive
-        unsigned vertsNum = seq.size();
-        std::vector<float> verts;
-        for (size_t j = 0; j < seq.size(); ++j) {
-            verts.push_back(seq[j].x);
-            verts.push_back(seq[j].y);
-            verts.push_back(id);
-        }
-        trajArray[i] = new Primitive(vertsNum, verts.data());
-    }
+    Primitive** trajArray = createTrajectoryArray(db, showIds);
     
     Shader* shader = Shader::newShader("drawPrimitives");
-    shader->use();
-    shader->setFloat("MAXX", cb.maxx);
-    shader->setFloat("MAXY", cb.maxy);
-    shader->setFloat("MINX", cb.minx);
-    shader->setFloat("MINY", cb.miny);
-    shader->setFloat("MAXN", (float)showIds.size());
+    setBound(shader, showIds.size());
+
     DBLog.set_show_info("trajectory", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
@@ -284,40 +370,20 @@ void TrajectoryDB::SHOW(IDArray ids) {
     glfwTerminate();
 }
 void PolygonDB::SHOW(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> showIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t showIndex = ids[i];
-        if (showIndex >= PDBArray.size())
-            errIds.push_back(showIndex);
-        else
-            showIds.push_back(showIndex);
-    }
+    errAndLeg eL = idRangeCheck(ids, PDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray showIds = eL.legIds;
     std::vector<Sequence>* db = &PDBArray;
     const char* windowTitle = "RT Terminal-Polygon Visualization";
     initOpenGL();
     GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
     initWindowAndGlad(window);
 
-    CoordBound cb = PrimitiveDB::getBound(*db);
-    Primitive** polyArray = new Primitive * [showIds.size()];//指针数组的首地址是指向指针的指针
-    for (size_t i = 0; i < showIds.size(); ++i) {
-        unsigned id = showIds[i];
-        Sequence seq = (*db)[id];
-        std::vector<float> verts;
-        triangulatePolygons(seq, verts, id);
-        unsigned vertsNum = verts.size() / 3;
-        polyArray[i] = new Primitive(vertsNum, verts.data());
-    }
-
+    Primitive** polyArray = createPolygonArray(db, showIds);
     Shader* shader = Shader::newShader("drawPrimitives");
-    shader->use();
-    shader->setFloat("MAXX", cb.maxx);
-    shader->setFloat("MAXY", cb.maxy);
-    shader->setFloat("MINX", cb.minx);
-    shader->setFloat("MINY", cb.miny);
-    shader->setFloat("MAXN", (float)showIds.size());
-    DBLog.set_show_info("trajectory", showIds.size(), errIds);
+    setBound(shader, showIds.size());
+
+    DBLog.set_show_info("polygon", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -336,44 +402,19 @@ void PolygonDB::SHOW(IDArray ids) {
 
 }
 void QueryTrajDB::SHOW(IDArray ids) {
-    std::vector<int> errIds;
-    std::vector<int> showIds;
-    for (size_t i = 0; i < ids.size(); ++i) {
-        size_t showIndex = ids[i];
-        if (showIndex >= QDBArray.size())
-            errIds.push_back(showIndex);
-        else
-            showIds.push_back(showIndex);
-    }
+    errAndLeg eL = idRangeCheck(ids, QDBArray);
+    IDArray errIds = eL.errIds;
+    IDArray showIds = eL.legIds;
     std::vector<Sequence>* db = &QDBArray;
     const char* windowTitle = "RT Terminal-Trajectory-to-be queried Visualization";
     initOpenGL();
     GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
     initWindowAndGlad(window);
 
-    CoordBound cb = PrimitiveDB::getBound(*db);
-    Primitive** qtrajArray = new Primitive * [showIds.size()];//指针数组的首地址是指向指针的指针
-    for (size_t i = 0; i < showIds.size(); ++i) {
-        unsigned id = showIds[i];
-        Sequence seq = (*db)[id];
-        //todo:类似main中的line，生成一个line指针数组。每个指针都对应一个new出来的Trajectory
-        unsigned vertsNum = seq.size();
-        std::vector<float> verts;
-        for (size_t j = 0; j < seq.size(); ++j) {
-            verts.push_back(seq[j].x);
-            verts.push_back(seq[j].y);
-            verts.push_back(id);
-        }
-        qtrajArray[i] = new Primitive(vertsNum, verts.data());
-    }
-
+    Primitive** qtrajArray = createTrajectoryArray(db, showIds);
     Shader* shader = Shader::newShader("drawPrimitives");
-    shader->use();
-    shader->setFloat("MAXX", cb.maxx);
-    shader->setFloat("MAXY", cb.maxy);
-    shader->setFloat("MINX", cb.minx);
-    shader->setFloat("MINY", cb.miny);
-    shader->setFloat("MAXN", (float)showIds.size());
+    setBound(shader, showIds.size());
+
     DBLog.set_show_info("trajectory-to-be-queried", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);

@@ -48,7 +48,7 @@ typedef std::vector<Token> TokenList;
 
 
 struct Lexer {//Lexical analyzer词法分析器
-public://其实应该把LexerLog作为一个数据对象的
+public:
     void printTokenList();
     TokenList getTokenList() const { return tokenList; }
     void scan(std::string s);

@@ -30,7 +30,7 @@
     {\
         qDebug() << "Failed to create GLFW window"<<"\n";\
         glfwTerminate();\
-        return;\
+        \
     }\
     glfwMakeContextCurrent(window);\
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);\
@@ -38,7 +38,7 @@
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))\
     {\
         qDebug() << "Failed to initialize GLAD"<<"\n";\
-        return;\
+        \
     }\
 }
 
