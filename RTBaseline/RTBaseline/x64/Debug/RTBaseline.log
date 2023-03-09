@@ -1,3 +1,2 @@
-﻿  PrimitiveDB.cpp
-C:\Qt\6.4.2\msvc2019_64\include\QtCore\qtcoreexports.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+﻿  Reading Qt configuration (C:/Qt/6.4.2/msvc2019_64/bin/qmake)
   RTBaseline.vcxproj -> D:\postgraduate\2023\02212006\RTBaseline\RTBaseline\x64\Debug\RTBaseline.exe
