@@ -147,3 +147,69 @@ void Log::set_show_info(const std::string& showObject, int objectNum, IDArray er
         log += " not in the DB, visulization failed\n";
     }
 }
+
+void Log::set_select_empty_err(const std::string& emptyObject) {
+    log = "Execute <select command>\n";
+    log += "Select Command Error: <illegal ids>. There is no legal id in the " + emptyObject + " id array, query failed\n";
+}
+
+void Log::set_select_info_RQ(const std::string& selectObject,IDArray retIds, IDArray errTids, IDArray errPids){
+    log = "Execute <select command>\n";
+    if (errTids.size() > 0) {
+        log += "Trajectory with id: ";
+        for (size_t i = 0; i < errTids.size(); ++i) {
+            log += std::to_string(errTids[i]);
+            log += " ";
+        }
+        log += " not in the DB\n";
+    }
+    if (errPids.size() > 0) {
+        log += "Polygon with id: ";
+        for (size_t i = 0; i < errPids.size(); ++i) {
+            log += std::to_string(errPids[i]);
+            log += " ";
+        }
+        log += " not in the DB\n";
+    }
+    log += "The topk " + selectObject + " is as follows : \n";
+    if (retIds.size() > 0) {
+        for (size_t i = 0; i < retIds.size(); ++i) {
+            log += std::to_string(retIds[i]);
+            log += " ";
+        }
+        log += "\n";
+    }
+}
+
+void Log::set_select_err_info_SQ(IDArray errTids, IDArray errQids) {
+    log = "Execute <select command>\n";
+    if (errTids.size() > 0) {
+        log += "Trajectory with id: ";
+        for (size_t i = 0; i < errTids.size(); ++i) {
+            log += std::to_string(errTids[i]);
+            log += " ";
+        }
+        log += " not in the DB\n";
+    }
+    if (errQids.size() > 0) {
+        log += "Trajectory-to-be-queried with id: ";
+        for (size_t i = 0; i < errQids.size(); ++i) {
+            log += std::to_string(errQids[i]);
+            log += " ";
+        }
+        log += " not in the DB\n";
+    }
+}
+
+void Log::set_select_info_SQ(IDArray retIds,size_t qid) {
+    log += "The topk most similar trajectory for qid " + std::to_string(qid) + " is as follows : \n";
+    if (retIds.size() > 0) {
+        for (size_t i = 0; i < retIds.size(); ++i) {
+            log += std::to_string(retIds[i]);
+            log += " ";
+        }
+        log += "\n";
+    }
+}
+
+

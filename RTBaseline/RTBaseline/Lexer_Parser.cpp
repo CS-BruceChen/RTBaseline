@@ -546,16 +546,16 @@ void Parser::doSelectInDB(PrimitiveDB* db, std::string str1, std::string str2) {
     IDArray ids1 = fectchIDFromInput(str1);
     IDArray ids2 = fectchIDFromInput(str2);
     if (!parserLog.getIsSuccess()) return;
-    IDArray result_ids = db->SELECT(ids1, ids2, ids1.size());
-    db->PRINT(result_ids);
+    db->SELECT(ids1, ids2, ids1.size());
+    parserLog.setLog(db->getDBLog());
 }
 
 void Parser::doSelectInDB(PrimitiveDB* db, std::string str1, std::string str2, int topk) {
     IDArray ids1 = fectchIDFromInput(str1);
     IDArray ids2 = fectchIDFromInput(str2);
     if (!parserLog.getIsSuccess()) return;
-    IDArray result_ids = db->SELECT(ids1, ids2, topk);
-    db->PRINT(result_ids);
+    db->SELECT(ids1, ids2, topk);
+    parserLog.setLog(db->getDBLog());
 }
 
 //设定：所有的合法性检查在状态机中已经完成

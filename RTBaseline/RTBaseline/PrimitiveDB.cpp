@@ -42,7 +42,7 @@ Primitive** PrimitiveDB::createTrajectoryArray(std::vector<Sequence>* db, IDArra
         for (size_t j = 0; j < seq.size(); ++j) {
             verts.push_back(seq[j].x);
             verts.push_back(seq[j].y);
-            verts.push_back(id);
+            verts.push_back(id+1);//start from 1
             //qDebug() << seq[j].x << " " << seq[j].y << " " << id << "\n";
         }
         primitiveArray[i] = new Primitive(vertsNum, verts.data());
@@ -55,7 +55,7 @@ Primitive** PrimitiveDB::createPolygonArray(std::vector<Sequence>* db, IDArray i
         unsigned id = ids[i];
         Sequence seq = (*db)[id];
         std::vector<float> verts;
-        triangulatePolygons(seq, verts, id);
+        triangulatePolygons(seq, verts, id+1);//start from 1
         unsigned vertsNum = verts.size() / 3;
         polyArray[i] = new Primitive(vertsNum, verts.data());
     }
@@ -81,12 +81,6 @@ void PrimitiveDB::deleteBound(Point p) {
     //也就是找第二大，但是这很难，至少不是一个常数复杂度的问题
 }
 IDArray PrimitiveDB::getTopk(std::vector<int> retFromShader, int topk) {
-    struct resultWithIndex {
-        int value;
-        size_t index;
-        resultWithIndex(int val, size_t ind) { value = val; index = ind; }
-    };
-
     std::vector<resultWithIndex> rI;
     for (size_t i = 0; i < retFromShader.size(); ++i) {
         rI.push_back(resultWithIndex(retFromShader[i], i));
@@ -266,7 +260,7 @@ void QueryTrajDB::PRINT(IDArray ids) {
 }
 
 
-IDArray TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
+void TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
     //定义必要的数据成员
     errAndLeg eLt = idRangeCheck(tids, TDBArray);
     errAndLeg eLp = idRangeCheck(pids, PDBArray);
@@ -274,12 +268,23 @@ IDArray TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
     IDArray errPids = eLp.errIds;
     IDArray queryTids = eLt.legIds;
     IDArray queryPids = eLp.legIds;
+    
+    //size check
+    if (queryTids.size() == 0) {
+        DBLog.set_select_empty_err("trajectory");
+        return;
+    }
+    else if (queryPids.size() == 0) {
+        DBLog.set_select_empty_err("polygon");
+        return;
+    }
+
+    //定义必要的GL成员
     const char* windowTitle = "RT Terminal Visualization";
     initOpenGL();
     GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
     initWindowAndGlad(window);
     Primitive** trajArray = createTrajectoryArray(&TDBArray, queryTids);
-    
     Primitive** polyArray = createPolygonArray(&PDBArray, queryPids);
     Shader* TShader = Shader::newShader("drawPrimitives");
     Shader* PShader = Shader::newShader("TRQ");
@@ -288,7 +293,7 @@ IDArray TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
     unsigned textureColorbuffer = fbo->texture();
     GLTextureBuffer texBuf;
     std::vector<int> resultData;
-    texBuf.create(queryTids.size() * sizeof(int), GL_R32I, resultData.data());
+    texBuf.create(queryTids.size() * sizeof(int), GL_R32I, resultData.data());//size 为轨迹数目的size
     glBindImageTexture(0, texBuf.getTexId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32I);
     
     //render loop
@@ -307,35 +312,140 @@ IDArray TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
             }
         } glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //绘制polygon
-        setBound(PShader, queryPids.size());
+        setBound(PShader, queryTids.size());//设置为tid数目，因为是要还原trajid
         glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
         for (unsigned i = 0; i < queryPids.size(); ++i) {
-            glBindVertexArray(polyArray[0]->VAO);
-            glDrawArrays(GL_TRIANGLES, 0, polyArray[0]->VNUM);
+            glBindVertexArray(polyArray[i]->VAO);
+            glDrawArrays(GL_TRIANGLES, 0, polyArray[i]->VNUM);
             glBindVertexArray(0);
         }
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     resultData = texBuf.getBuffer();
-    for (size_t i = 0; i < resultData.size(); ++i) {
-        qDebug() << resultData[i] << "\n";
-    }
     IDArray retIds = getTopk(resultData, topk);
+    DBLog.set_select_info_RQ("trajectory overlap the given polygon", retIds, errTids, errPids);
     texBuf.destroy();
     glfwTerminate();
-    return retIds;
 }
+void PolygonDB::SELECT(IDArray pids, IDArray tids, int topk) {
+    //定义必要的数据成员
+    errAndLeg eLt = idRangeCheck(tids, TDBArray);
+    errAndLeg eLp = idRangeCheck(pids, PDBArray);
+    IDArray errTids = eLt.errIds;
+    IDArray errPids = eLp.errIds;
+    IDArray queryTids = eLt.legIds;
+    IDArray queryPids = eLp.legIds;
 
-IDArray PolygonDB::SELECT(IDArray tids, IDArray pids, int topk) {
-    qDebug() << "p slt\n";
-    IDArray newid;
-    return newid;
+    //size check
+    if (queryTids.size() == 0) {
+        DBLog.set_select_empty_err("trajectory");
+        return;
+    }
+    else if (queryPids.size() == 0) {
+        DBLog.set_select_empty_err("polygon");
+        return;
+    }
+
+    //定义必要的GL成员
+    const char* windowTitle = "RT Terminal Visualization";
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, windowTitle);
+    initWindowAndGlad(window);
+    Primitive** trajArray = createTrajectoryArray(&TDBArray, queryTids);
+    Primitive** polyArray = createPolygonArray(&PDBArray, queryPids);
+    Shader* PShader = Shader::newShader("drawPrimitives");
+    Shader* TShader = Shader::newShader("TRQ");
+    FBO* fbo = new FBO(WINDOW_WIDTH, WINDOW_HEIGHT, FBO::Attachment::NoAttachment, GL_TEXTURE_2D, GL_RGB);
+    unsigned framebuffer = fbo->getFBO();
+    unsigned textureColorbuffer = fbo->texture();
+    GLTextureBuffer texBuf;
+    std::vector<int> resultData;
+    texBuf.create(queryPids.size() * sizeof(int), GL_R32I, resultData.data());//size 为polygon数目的size
+    glBindImageTexture(0, texBuf.getTexId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32I);
+
+    //render loop
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        //查询多边形，则首先在fbo绘制多边形
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer); {
+            setBound(PShader, queryPids.size());
+            for (unsigned i = 0; i < queryPids.size(); ++i) {
+                glBindVertexArray(polyArray[i]->VAO);
+                glDrawArrays(GL_TRIANGLES, 0, polyArray[i]->VNUM);
+                glBindVertexArray(0);
+            }
+        } glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //绘制轨迹
+        setBound(TShader, queryPids.size());//设置为pid数目，因为是要还原polyid
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        for (unsigned i = 0; i < queryTids.size(); ++i) {
+            glBindVertexArray(trajArray[i]->VAO);
+            glDrawArrays(GL_LINE_STRIP, 0, trajArray[i]->VNUM);
+            glBindVertexArray(0);
+        }
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    resultData = texBuf.getBuffer();
+    IDArray retIds = getTopk(resultData, topk);
+    DBLog.set_select_info_RQ("polygon overlap the given trajectory", retIds, errTids, errPids);
+    texBuf.destroy();
+    glfwTerminate();
+
 }
-IDArray QueryTrajDB::SELECT(IDArray tids, IDArray pids, int topk) {
-    qDebug() << "q slt\n";
-    IDArray newid;
-    return newid;
+void QueryTrajDB::SELECT(IDArray tids, IDArray qids, int topk) {
+    errAndLeg eLt = idRangeCheck(tids, TDBArray);
+    errAndLeg eLq = idRangeCheck(qids, QDBArray);
+    IDArray errTids = eLt.errIds;
+    IDArray errQids = eLq.errIds;
+    IDArray queryTids = eLt.legIds;
+    IDArray queryQids = eLq.legIds;
+
+    //size check
+    if (queryTids.size() == 0) {
+        DBLog.set_select_empty_err("trajectory");
+        return;
+    }
+    else if (queryQids.size() == 0) {
+        DBLog.set_select_empty_err("trajectory-to-be-queried");
+        return;
+    }
+    DBLog.set_select_err_info_SQ(errTids, errQids);
+    //定义必要的GL变量
+    initOpenGL();
+    GLFWwindow* window = createWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE);
+    initWindowAndGlad(window);
+    Shader* EDR_shader = Shader::newComputeShader("computeEDR");
+
+    for (size_t i = 0; i < queryQids.size(); ++i) {
+        std::vector<resultWithIndex> rI;
+        Sequence qSeq = QDBArray[queryQids[i]];
+        for (size_t j = 0; j < queryTids.size(); ++j) {
+            Sequence tSeq = TDBArray[queryTids[j]];
+            DPInfo dpinfo(tSeq, qSeq);
+            dpinfo.setUniformDPInfo(EDR_shader);
+            for (unsigned i = 1; i <= dpinfo.get_total_step(); ++i) {
+                EDR_shader->setUint("step_now", i);
+                glDispatchCompute(1, 1, 1);
+                int dpresult = *(dpinfo.get_DPBuf().end() - 1);
+                qDebug() << dpresult;
+                rI.push_back(resultWithIndex(dpresult, queryTids[j]));
+            }
+        }
+        sort(rI.begin(), rI.end(), [=](resultWithIndex a, resultWithIndex b)->bool {return a.value > b.value; });
+        size_t realTopk = (rI.size() < topk) ? rI.size() : topk;
+        IDArray resultIds;
+        for (size_t i = 0; i < realTopk; ++i) {
+            resultIds.push_back(rI[i].index);
+        }
+        DBLog.set_select_info_SQ(resultIds, queryQids[i]);
+    }
+    glfwTerminate();
 }
 
 

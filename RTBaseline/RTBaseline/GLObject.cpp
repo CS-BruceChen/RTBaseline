@@ -10,6 +10,13 @@ Shader* Shader::newShader(std::string name) {
     return new Shader(shader);
 }
 
+Shader* Shader::newComputeShader(std::string name) {
+    std::vector<std::string> shader;
+    std::string cs = "./" + name + ".cs.glsl";
+    shader.push_back(cs);
+    return new Shader(shader);
+}
+
 Shader::Shader(std::vector<std::string> filePaths) {
     ID = glCreateProgram();
     for (int i = 0; i < (int)filePaths.size(); ++i) {
@@ -344,7 +351,7 @@ void GLTextureBuffer::destroy() {
     texId = 0;
 };
 
-DPInfo::DPInfo(std::vector<Point>& tq, std::vector<Point>& t) {
+DPInfo::DPInfo(Sequence& tq, Sequence& t) {
     wd = tq.size();
     ht = t.size();
     isWdBiggerThanHt = wd > ht ? true : false;

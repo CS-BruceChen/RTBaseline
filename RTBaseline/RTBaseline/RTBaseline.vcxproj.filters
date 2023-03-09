@@ -140,5 +140,8 @@
     <None Include="TRQ.fs.glsl">
       <Filter>Source Files\Shader</Filter>
     </None>
+    <None Include="computeEDR.cs.glsl">
+      <Filter>Source Files\Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -130,6 +130,7 @@
     <ClInclude Include="triangulation\poly2tri\sweep\sweep_context.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="computeEDR.cs.glsl" />
     <None Include="drawPrimitives.vs.glsl" />
     <None Include="drawPrimitives.fs.glsl" />
     <None Include="TRQ.fs.glsl" />

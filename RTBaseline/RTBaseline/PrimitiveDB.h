@@ -12,6 +12,12 @@ struct errAndLeg
     IDArray legIds;//legal Ids
 };
 
+struct resultWithIndex {
+    int value;
+    size_t index;
+    resultWithIndex(int val, size_t ind) { value = val; index = ind; }
+};
+
 class PrimitiveDB {
     //default constructor
 protected://only visiable in derived classes
@@ -36,7 +42,7 @@ public:
     Primitive** createPolygonArray(std::vector<Sequence>* db, IDArray ids);
     virtual void ADD(std::vector<Sequence> seqArray) = 0;
     virtual void DELETE(IDArray ids) = 0;
-    virtual IDArray SELECT(IDArray ids1, IDArray ids2, int topk) = 0;
+    virtual void SELECT(IDArray ids1, IDArray ids2, int topk) = 0;
     virtual void SHOW(IDArray ids) = 0;
     virtual void PRINT() = 0;
     virtual void PRINT(IDArray result_ids) = 0;
@@ -46,7 +52,7 @@ class TrajectoryDB :public PrimitiveDB {
 public:
     void ADD(std::vector<Sequence> seqArray);
     void DELETE(IDArray ids);
-    IDArray SELECT(IDArray tids, IDArray pids, int topk);
+    void SELECT(IDArray tids, IDArray pids, int topk);
     void SHOW(IDArray ids);
     void PRINT();
     void PRINT(IDArray result_ids);
@@ -56,7 +62,7 @@ class QueryTrajDB : public PrimitiveDB {
 public:
     void ADD(std::vector<Sequence> seqArray);
     void DELETE(IDArray ids);
-    IDArray SELECT(IDArray tids, IDArray qids, int topk);
+    void SELECT(IDArray tids, IDArray qids, int topk);
     void SHOW(IDArray ids);
     void PRINT();
     void PRINT(IDArray result_ids);
@@ -66,7 +72,7 @@ class PolygonDB : public PrimitiveDB {
 public:
     void ADD(std::vector<Sequence> seqArray);
     void DELETE(IDArray ids);
-    IDArray SELECT(IDArray pids, IDArray tids, int topk);
+    void SELECT(IDArray pids, IDArray tids, int topk);
     void SHOW(IDArray ids);
     void PRINT();
     void PRINT(IDArray result_ids);

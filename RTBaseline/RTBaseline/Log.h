@@ -23,6 +23,10 @@ public:
     void set_print_info(const std::string& printObject, std::string& printInfo);
     void set_print_info(const std::string& printObject, std::string& printInfo, IDArray errIds);
     void set_show_info(const std::string& showObject, int objectNum, IDArray errIds);
+    void set_select_empty_err(const std::string& emptyObject);
+    void set_select_info_RQ(const std::string& selectObject, IDArray retIds, IDArray errTids, IDArray errPids);
+    void set_select_err_info_SQ(IDArray errTids, IDArray errQids);
+    void set_select_info_SQ(IDArray retIds,size_t qid);
 private:
     std::string log;
     bool isSuccess;

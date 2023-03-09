@@ -70,6 +70,7 @@ private:
 
 public:
     static Shader* newShader(std::string name);
+    static Shader* newComputeShader(std::string name);
 };
 
 class FBO {
@@ -105,27 +106,6 @@ struct Primitive {
     Primitive(unsigned vertsNum, void* data);
 };
 
-//struct Trajectory {
-//    unsigned VAO;
-//    unsigned VBO;
-//    unsigned VNUM;
-//    Trajectory(unsigned vertsNum, void* data);
-//};
-//
-//struct Polygon {
-//    unsigned VAO;
-//    unsigned VBO;
-//    unsigned VNUM;
-//    Polygon(unsigned vertsNum, void* data);
-//};
-//
-//struct QueryTraj {
-//    unsigned VAO;
-//    unsigned VBO;
-//    unsigned VNUM;
-//    QueryTraj(unsigned vertsNum, void* data);
-//};
-
 struct Point {
     float x, y;
     Point() { x = 0; y = 0; }
@@ -158,7 +138,7 @@ private:
 };
 
 struct DPInfo {
-    DPInfo(std::vector<Point>& tq, std::vector<Point>& t);
+    DPInfo(Sequence& tq, Sequence& t);
     ~DPInfo();
 public:
     unsigned get_wd() const { return wd; }
