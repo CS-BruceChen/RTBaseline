@@ -1,5 +1,6 @@
 #include "PrimitiveDB.h"
 
+//static member initialization
 std::vector<Sequence> PrimitiveDB::TDBArray(0);
 std::vector<Sequence> PrimitiveDB::PDBArray(0);
 std::vector<Sequence> PrimitiveDB::QDBArray(0);
@@ -8,6 +9,7 @@ float PrimitiveDB::maxy = FLT_MIN;
 float PrimitiveDB::minx = FLT_MAX;
 float PrimitiveDB::miny = FLT_MAX;
 
+//implement parent class
 CoordBound PrimitiveDB::getBound(std::vector<Sequence>& primitive) {
     float MAXX=FLT_MIN, MAXY=FLT_MIN, MINX=FLT_MAX, MINY=FLT_MAX;
     for (size_t i = 0; i < primitive.size(); ++i) {
@@ -94,6 +96,7 @@ IDArray PrimitiveDB::getTopk(std::vector<int> retFromShader, int topk) {
     }
     return resultIds;
 }
+
 //ADD
 void TrajectoryDB::ADD(std::vector<Sequence> seqArray) {
     for (size_t i = 0; i < seqArray.size(); ++i) {
@@ -259,7 +262,6 @@ void QueryTrajDB::PRINT(IDArray ids) {
     DBLog.set_print_info("trajectory-to-be-queried", printInfo, errIds);
 }
 
-
 void TrajectoryDB::SELECT(IDArray tids, IDArray pids, int topk) {
     //定义必要的数据成员
     errAndLeg eLt = idRangeCheck(tids, TDBArray);
@@ -422,6 +424,7 @@ void QueryTrajDB::SELECT(IDArray tids, IDArray qids, int topk) {
     initWindowAndGlad(window);
     Shader* EDR_shader = Shader::newComputeShader("computeEDR");
 
+    //compute EDR
     for (size_t i = 0; i < queryQids.size(); ++i) {
         std::vector<resultWithIndex> rI;
         Sequence qSeq = QDBArray[queryQids[i]];
@@ -448,7 +451,6 @@ void QueryTrajDB::SELECT(IDArray tids, IDArray qids, int topk) {
     glfwTerminate();
 }
 
-
 void TrajectoryDB::SHOW(IDArray ids) {
     errAndLeg eL = idRangeCheck(ids, TDBArray);
     IDArray errIds = eL.errIds;
@@ -461,7 +463,7 @@ void TrajectoryDB::SHOW(IDArray ids) {
     Primitive** trajArray = createTrajectoryArray(db, showIds);
     
     Shader* shader = Shader::newShader("drawPrimitives");
-    setBound(shader, showIds.size());
+    setBound(shader, TDBArray.size());//id / maxn =val
 
     DBLog.set_show_info("trajectory", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {
@@ -491,7 +493,7 @@ void PolygonDB::SHOW(IDArray ids) {
 
     Primitive** polyArray = createPolygonArray(db, showIds);
     Shader* shader = Shader::newShader("drawPrimitives");
-    setBound(shader, showIds.size());
+    setBound(shader, PDBArray.size());
 
     DBLog.set_show_info("polygon", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {
@@ -523,7 +525,7 @@ void QueryTrajDB::SHOW(IDArray ids) {
 
     Primitive** qtrajArray = createTrajectoryArray(db, showIds);
     Shader* shader = Shader::newShader("drawPrimitives");
-    setBound(shader, showIds.size());
+    setBound(shader, QDBArray.size());
 
     DBLog.set_show_info("trajectory-to-be-queried", showIds.size(), errIds);
     while (!glfwWindowShouldClose(window)) {

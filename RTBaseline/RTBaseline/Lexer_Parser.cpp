@@ -401,9 +401,15 @@ Sequence Parser::fetchDataFromInput(std::string inputSequence) {
     {
         START,
         XI,
-        XF,
+        POSXI,
+        NEGXI,
+        POSXF,
+        NEGXF,
         YI,
-        YF,
+        POSYI,
+        NEGYI,
+        POSYF,
+        NEGYF,
         END,
         ERR
     };
@@ -411,8 +417,8 @@ Sequence Parser::fetchDataFromInput(std::string inputSequence) {
     size_t i = 0;
     std::string x = "";
     std::string y = "";
-    double dx = 0;
-    double dy = 0;
+    float dx = 0;
+    float dy = 0;
     Sequence newSeq;
     while (i < inputSequence.length()) {//实现状态转移图的每一个有向边
         if (stateNow == START && inputSequence[i] == '(') {
@@ -422,46 +428,104 @@ Sequence Parser::fetchDataFromInput(std::string inputSequence) {
             dx = 0;
             dy = 0;
         }
-        else if (stateNow == XI && 0 <= (inputSequence[i] - '0') && ((inputSequence[i] - '0')) <= 9) {
-            stateNow = XI;
+        else if (stateNow == XI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSXI;
             x += inputSequence[i];
         }
-        else if (stateNow == XI && inputSequence[i] == '.') {
-            stateNow = XF;
-            x += '.';
-        }
-        else if (stateNow == XI && inputSequence[i] == ',') {
-            stateNow = YI;
-            dx = std::stod(x);
-        }
-        else if (stateNow == XF && 0 <= (inputSequence[i] - '0') && ((inputSequence[i] - '0')) <= 9) {
-            stateNow = XF;
+        else if (stateNow == XI && inputSequence[i] == '-') {
+            stateNow = NEGXI;
             x += inputSequence[i];
         }
-        else if (stateNow == XF && inputSequence[i] == ',') {
-            stateNow = YI;
-            dx = std::stod(x);
+        else if (stateNow == POSXI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSXI;
+            x += inputSequence[i];
         }
-        else if (stateNow == YI && 0 <= (inputSequence[i] - '0') && ((inputSequence[i] - '0')) <= 9) {
+        else if (stateNow == NEGXI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = NEGXI;
+            x += inputSequence[i];
+        }
+        else if (stateNow == POSXI && inputSequence[i] == '.') {
+            stateNow = POSXF;
+            x += inputSequence[i];
+        }
+        else if (stateNow == NEGXI && inputSequence[i] == '.') {
+            stateNow = NEGXF;
+            x += inputSequence[i];
+        }
+        else if (stateNow == POSXI && inputSequence[i] == ',') {
             stateNow = YI;
+        }
+        else if (stateNow == NEGXI && inputSequence[i] == ',') {
+            stateNow = YI;
+        }
+        else if (stateNow == POSXF && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSXF;
+            x += inputSequence[i];
+        }
+        else if (stateNow == POSXF && inputSequence[i] == ',') {
+            stateNow = YI;
+        }
+        else if (stateNow == NEGXF && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = NEGXF;
+            x += inputSequence[i];
+        }
+        else if (stateNow == NEGXF && inputSequence[i] == ',') {
+            stateNow = YI;
+        }
+        else if (stateNow == YI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSYI;
             y += inputSequence[i];
         }
-        else if (stateNow == YI && inputSequence[i] == '.') {
-            stateNow = YF;
+        else if (stateNow == YI && inputSequence[i] == '-') {
+            stateNow = NEGYI;
             y += inputSequence[i];
         }
-        else if (stateNow == YI && inputSequence[i] == ')') {
+        else if (stateNow == POSYI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSYI;
+            y += inputSequence[i];
+        }
+        else if (stateNow == NEGYI && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = NEGYI;
+            y += inputSequence[i];
+        }
+        else if (stateNow == POSYI && inputSequence[i] == '.') {
+            stateNow = POSYF;
+            y += inputSequence[i];
+        }
+        else if (stateNow == NEGYI && inputSequence[i] == '.') {
+            stateNow = NEGYF;
+            y += inputSequence[i];
+        }
+        else if (stateNow == POSYF && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = POSYF;
+            y += inputSequence[i];
+        }
+        else if (stateNow == NEGYF && 0 <= (inputSequence[i] - '0') && (inputSequence[i] - '0') <= 9) {
+            stateNow = NEGYF;
+            y += inputSequence[i];
+        }
+        else if (stateNow == POSYI && inputSequence[i] == ')') {
             stateNow = END;
-            dy = std::stod(y);
+            dx = stof(x);
+            dy = stof(y);
             newSeq.push_back(Point(dx, dy));
         }
-        else if (stateNow == YF && 0 <= (inputSequence[i] - '0') && ((inputSequence[i] - '0')) <= 9) {
-            stateNow = YF;
-            y += inputSequence[i];
-        }
-        else if (stateNow == YF && inputSequence[i] == ')') {
+        else if (stateNow == NEGYI && inputSequence[i] == ')') {
             stateNow = END;
-            dy = std::stod(y);
+            dx = stof(x);
+            dy = stof(y);
+            newSeq.push_back(Point(dx, dy));
+        }
+        else if (stateNow == POSYF && inputSequence[i] == ')') {
+            stateNow = END;
+            dx = stof(x);
+            dy = stof(y);
+            newSeq.push_back(Point(dx, dy));
+        }
+        else if (stateNow == NEGYF && inputSequence[i] == ')') {
+            stateNow = END;
+            dx = stof(x);
+            dy = stof(y);
             newSeq.push_back(Point(dx, dy));
         }
         else if (stateNow == END && inputSequence[i] == ',') {
